@@ -1,0 +1,2942 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>بنك المعلومات</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap');
+:root{
+  --navy:#0f2744;--blue:#1a4a8a;--blue2:#2563ab;--sky:#3b82f6;
+  --teal:#0d9488;--green:#059669;--amber:#d97706;--red:#dc2626;--purple:#7c3aed;
+  --bg:#f1f5fb;--card:#fff;--border:#dde4f0;--text:#0f1a2e;--muted:#64748b;
+  --sidebar:240px;--hdr:58px;
+  --fnt:'Tajawal',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--fnt);background:var(--bg);color:var(--text);font-size:14px}
+
+/* HDR */
+.hdr{position:fixed;top:0;right:0;left:0;height:var(--hdr);
+  background:var(--navy);color:#fff;display:flex;align-items:center;
+  padding:0 18px;gap:12px;z-index:300;box-shadow:0 2px 16px rgba(0,0,0,.35)}
+.hdr-brand{font-size:19px;font-weight:900;letter-spacing:-.3px;display:flex;align-items:center;gap:8px}
+.hdr-brand span{color:#60a5fa}
+.hdr-chips{margin-right:auto;display:flex;gap:6px;flex-wrap:wrap}
+.chip{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.15);
+  border-radius:20px;padding:3px 11px;font-size:12px;font-weight:700;cursor:pointer;transition:.15s}
+.chip:hover{background:rgba(255,255,255,.22)}
+.chip b{color:#93c5fd}
+
+/* SIDEBAR */
+.sb{position:fixed;top:var(--hdr);right:0;width:var(--sidebar);
+  height:calc(100vh - var(--hdr));background:var(--navy);
+  overflow-y:auto;z-index:200;border-left:1px solid rgba(255,255,255,.07)}
+.sb-sec{padding:6px 0;border-bottom:1px solid rgba(255,255,255,.07)}
+.sb-ttl{padding:10px 14px 4px;font-size:10px;color:rgba(255,255,255,.35);
+  text-transform:uppercase;letter-spacing:1px;font-weight:700}
+.ni{display:flex;align-items:center;gap:9px;padding:9px 14px;
+  color:rgba(255,255,255,.75);cursor:pointer;font-size:13px;font-weight:500;
+  border-right:3px solid transparent;transition:.15s}
+.ni:hover{background:rgba(255,255,255,.07);color:#fff}
+.ni.on{background:rgba(59,130,246,.18);color:#93c5fd;border-right-color:#3b82f6}
+.ni-ico{font-size:15px;width:18px;text-align:center;flex-shrink:0}
+.ni-cnt{margin-right:auto;background:var(--sky);color:#fff;border-radius:9px;
+  padding:1px 7px;font-size:11px;font-weight:800}
+.ni-cnt.red{background:var(--red)}
+
+/* MAIN */
+.main{margin-right:var(--sidebar);margin-top:var(--hdr);
+  padding:20px;min-height:calc(100vh - var(--hdr))}
+
+/* PAGES */
+.pg{display:none}.pg.on{display:block}
+
+/* CARD */
+.card{background:var(--card);border-radius:10px;box-shadow:0 1px 6px rgba(0,0,0,.07);overflow:hidden;margin-bottom:16px}
+.card-hdr{background:var(--navy);color:#fff;padding:12px 18px;
+  display:flex;align-items:center;justify-content:space-between;font-weight:700;font-size:14px;gap:10px}
+.card-hdr-left{display:flex;gap:7px;align-items:center}
+.card-body{padding:16px}
+
+/* STAT GRID */
+.sg{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:16px}
+.sc{background:var(--card);border-radius:10px;padding:14px;
+  box-shadow:0 1px 6px rgba(0,0,0,.07);cursor:pointer;
+  border-top:3px solid var(--blue);transition:.2s;position:relative;overflow:hidden}
+.sc:hover{transform:translateY(-2px);box-shadow:0 4px 14px rgba(0,0,0,.12)}
+.sc.blue{border-color:#3b82f6}.sc.green{border-color:var(--green)}
+.sc.amber{border-color:var(--amber)}.sc.red{border-color:var(--red)}
+.sc.purple{border-color:var(--purple)}.sc.teal{border-color:var(--teal)}
+.sc-lbl{font-size:11px;color:var(--muted);font-weight:600;margin-bottom:6px}
+.sc-val{font-size:26px;font-weight:900;color:var(--navy)}
+.sc-sub{font-size:11px;color:var(--muted);margin-top:3px}
+
+/* FILTERS */
+.fp{background:var(--card);border-radius:10px;padding:14px 16px;
+  margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.fp-top{display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+.fp-count{font-size:13px;font-weight:700;color:var(--blue2);background:#eff6ff;
+  border:1px solid #bfdbfe;border-radius:8px;padding:6px 14px;white-space:nowrap}
+.fp-count b{font-size:16px}
+.fp-row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.fg{display:flex;flex-direction:column;gap:3px;min-width:130px;flex:1}
+.fg label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.fg input,.fg select{padding:7px 10px;border:1.5px solid var(--border);
+  border-radius:7px;font-size:13px;font-family:var(--fnt);color:var(--text);background:#f8fafc;transition:.15s}
+.fg input:focus,.fg select:focus{outline:none;border-color:var(--sky);background:#fff}
+
+/* MULTI-SELECT FILTER */
+.ms-wrap{position:relative}
+.ms-btn{width:100%;padding:7px 10px;border:1.5px solid var(--border);
+  border-radius:7px;font-size:13px;font-family:var(--fnt);background:#f8fafc;
+  text-align:right;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:6px;transition:.15s}
+.ms-btn:hover,.ms-btn.open{border-color:var(--sky);background:#fff}
+.ms-dropdown{position:absolute;top:100%;right:0;left:0;background:#fff;
+  border:1.5px solid var(--sky);border-radius:7px;box-shadow:0 8px 24px rgba(0,0,0,.12);
+  z-index:50;max-height:240px;overflow-y:auto;display:none}
+.ms-dropdown.open{display:block}
+.ms-opt{display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;font-size:13px;transition:.1s}
+.ms-opt:hover{background:#eff6ff}
+.ms-opt input[type=checkbox]{accent-color:var(--sky);width:15px;height:15px;cursor:pointer}
+.ms-sel-count{background:var(--sky);color:#fff;border-radius:10px;padding:1px 7px;font-size:11px;font-weight:700}
+
+/* BTNS */
+.btn{padding:7px 13px;border-radius:7px;border:none;cursor:pointer;
+  font-size:13px;font-weight:700;font-family:var(--fnt);
+  display:inline-flex;align-items:center;gap:6px;transition:.15s;white-space:nowrap}
+.btn-navy{background:var(--navy);color:#fff}.btn-navy:hover{background:var(--blue)}
+.btn-blue{background:var(--blue2);color:#fff}.btn-blue:hover{background:var(--navy)}
+.btn-green{background:var(--green);color:#fff}.btn-green:hover{background:#047857}
+.btn-red{background:var(--red);color:#fff}.btn-red:hover{background:#b91c1c}
+.btn-amber{background:var(--amber);color:#fff}.btn-amber:hover{background:#b45309}
+.btn-teal{background:var(--teal);color:#fff}.btn-teal:hover{background:#0f766e}
+.btn-ghost{background:#f1f5fb;color:var(--text);border:1.5px solid var(--border)}
+.btn-ghost:hover{background:#e2e8f4}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn-xs{padding:3px 8px;font-size:11px;border-radius:5px}
+
+/* TABLE */
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead{position:sticky;top:0;z-index:5}
+th{background:var(--navy);color:#fff;padding:9px 12px;
+  text-align:right;white-space:nowrap;font-size:12px;font-weight:700;
+  border-left:1px solid rgba(255,255,255,.08);cursor:pointer;user-select:none}
+th:hover{background:var(--blue)}
+td{padding:8px 12px;border-bottom:1px solid var(--border);
+  white-space:nowrap;max-width:200px;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
+tr.selected td{background:#eff6ff!important}
+tr:hover td{background:#f8fafc}
+tr:nth-child(even) td{background:#fafbfd}
+tr:nth-child(even):hover td{background:#f8fafc}
+.cb-col{width:36px;text-align:center}
+input[type=checkbox]{accent-color:var(--sky);width:14px;height:14px;cursor:pointer}
+
+/* BADGES */
+.bdg{display:inline-block;padding:2px 9px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap}
+.bdg-green{background:#d1fae5;color:#065f46}
+.bdg-amber{background:#fef3c7;color:#92400e}
+.bdg-red{background:#fee2e2;color:#991b1b}
+.bdg-blue{background:#dbeafe;color:#1e40af}
+.bdg-purple{background:#ede9fe;color:#5b21b6}
+.bdg-gray{background:#f1f5f9;color:#475569}
+.bdg-teal{background:#ccfbf1;color:#134e4a}
+
+/* MODAL */
+.ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);
+  z-index:400;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto}
+.ov.open{display:flex}
+.modal{background:#fff;border-radius:12px;width:100%;max-width:1000px;
+  margin:auto;box-shadow:0 24px 64px rgba(0,0,0,.3);max-height:95vh;
+  display:flex;flex-direction:column}
+.mhdr{background:var(--navy);color:#fff;padding:16px 20px;border-radius:12px 12px 0 0;
+  display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.mhdr h2{font-size:16px;font-weight:800}
+.mclose{background:none;border:none;color:#fff;font-size:26px;cursor:pointer;line-height:1;padding:0 2px}
+.mbody{padding:20px;overflow-y:auto;flex:1}
+.mftr{padding:13px 20px;border-top:1px solid var(--border);
+  display:flex;gap:8px;justify-content:flex-end;flex-shrink:0;flex-wrap:wrap}
+
+/* FORM */
+.fgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:11px}
+.fgrid.g2{grid-template-columns:repeat(2,1fr)}
+.fgrp{display:flex;flex-direction:column;gap:4px}
+.fgrp.s2{grid-column:span 2}.fgrp.s3{grid-column:1/-1}
+.fgrp label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
+.fgrp input,.fgrp select,.fgrp textarea{
+  padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;
+  font-size:13px;font-family:var(--fnt);color:var(--text);background:#f8fafc;transition:.15s}
+.fgrp input:focus,.fgrp select:focus,.fgrp textarea:focus{outline:none;border-color:var(--sky);background:#fff}
+.fsec{margin-top:18px;padding-top:14px;border-top:2px solid var(--bg)}
+.fsec h3{font-size:12px;font-weight:800;color:var(--blue2);
+  text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;
+  display:flex;align-items:center;gap:6px}
+
+/* VIEW MODAL */
+.vi-top{display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+  padding:12px 16px;background:#f8fafc;border-radius:8px;margin-bottom:14px}
+.vi-note{background:#fef3c7;border:1.5px solid #fcd34d;border-radius:8px;
+  padding:10px 14px;margin-bottom:14px;font-size:13px}
+.vi-note-lbl{font-size:11px;font-weight:800;color:#92400e;margin-bottom:3px;text-transform:uppercase}
+.vi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0;
+  border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.vi-item{padding:9px 13px;border-bottom:1px solid var(--border);border-left:1px solid var(--border)}
+.vi-item:nth-child(3n){border-left:none}
+.vi-lbl{font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px}
+.vi-val{font-size:13px;color:var(--text);font-weight:600}
+
+/* SETTINGS */
+.set-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px}
+.tag-wrap{display:flex;flex-wrap:wrap;gap:5px;min-height:34px;
+  padding:6px;border:1.5px solid var(--border);border-radius:7px;background:#f8fafc}
+.tag{display:inline-flex;align-items:center;gap:4px;background:var(--blue2);
+  color:#fff;border-radius:12px;padding:3px 9px;font-size:12px;font-weight:600;cursor:default}
+.tx{cursor:pointer;font-size:13px;opacity:.75;line-height:1}.tx:hover{opacity:1}
+.tag-add-row{display:flex;gap:6px;margin-top:7px}
+.tag-add-row input{flex:1;padding:6px 10px;border:1.5px solid var(--border);
+  border-radius:7px;font-size:13px;font-family:var(--fnt)}
+
+/* STATS */
+.stats-box{background:var(--card);border-radius:10px;box-shadow:0 1px 6px rgba(0,0,0,.07);overflow:hidden;margin-bottom:14px}
+.sbox-hdr{padding:10px 14px;font-weight:800;font-size:14px;
+  display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid var(--border)}
+.srow{display:grid;border-top:1px solid var(--border);font-size:12px}
+.scell{padding:7px 10px;text-align:center;border-left:1px solid var(--border);font-weight:600}
+.scell:last-child{border:none}
+.scell.h{background:#f1f5fb;font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase}
+.scell.gr{color:var(--green)}.scell.rd{color:var(--red)}.scell.bl{color:var(--blue2)}.scell.am{color:var(--amber)}
+
+/* PAGER */
+.pager{display:flex;align-items:center;justify-content:space-between;
+  padding:10px 0;gap:10px;flex-wrap:wrap}
+.pg-info{font-size:12px;color:var(--muted)}
+.pg-btns{display:flex;gap:3px}
+.pb{padding:5px 10px;border:1.5px solid var(--border);background:#fff;
+  border-radius:6px;cursor:pointer;font-size:12px;font-family:var(--fnt);font-weight:600}
+.pb:hover:not(:disabled){background:var(--blue2);color:#fff;border-color:var(--blue2)}
+.pb:disabled{opacity:.35;cursor:default}
+.pb.on{background:var(--blue2);color:#fff;border-color:var(--blue2)}
+
+/* RECENTLY MODIFIED */
+.mod-row{background:#fffbeb;border-right:3px solid var(--amber)}
+
+/* TOAST */
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(0);
+  background:var(--navy);color:#fff;padding:10px 22px;border-radius:8px;
+  font-weight:700;z-index:9999;display:none;font-size:13px;
+  box-shadow:0 4px 16px rgba(0,0,0,.25)}
+.toast.err{background:var(--red)}
+.toast.show{display:block;animation:su .3s ease}
+@keyframes su{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+
+/* DRAG SORT */
+.drag-item{cursor:grab;user-select:none;padding:7px 12px;background:#f8fafc;
+  border:1.5px solid var(--border);border-radius:7px;display:flex;align-items:center;gap:8px;font-size:13px}
+.drag-item:active{cursor:grabbing;background:#eff6ff}
+.drag-handle{color:var(--muted);font-size:16px}
+.drag-list{display:flex;flex-direction:column;gap:5px;min-height:50px}
+
+/* SORT INDICATOR */
+th .si{font-size:10px;margin-right:3px;opacity:.7}
+
+@media(max-width:720px){
+  .sb{width:0;overflow:hidden}
+  .main{margin-right:0}
+  .fgrid{grid-template-columns:1fr 1fr}
+  .vi-grid{grid-template-columns:1fr 1fr}
+}
+
+
+#loginScreen{position:fixed;inset:0;background:#0f2744;z-index:9999;display:flex;align-items:center;justify-content:center}
+.lbox{background:#fff;border-radius:16px;padding:40px 48px;width:100%;max-width:380px;box-shadow:0 24px 64px rgba(0,0,0,.4);text-align:center}
+.lfg{text-align:right;margin-bottom:14px}
+.lfg label{font-size:12px;font-weight:700;color:#64748b;display:block;margin-bottom:4px}
+.lfg input{width:100%;padding:10px 14px;border:2px solid #dde4f0;border-radius:8px;font-size:14px;font-family:inherit}
+.lfg input:focus{outline:none;border-color:#3b82f6}
+#loginErr{color:#dc2626;font-size:13px;margin:6px 0;display:none}
+.lbtn{width:100%;padding:12px;background:#0f2744;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:800;font-family:inherit;cursor:pointer;margin-top:6px}
+.lbtn:hover{background:#1a4a8a}
+#sbar{position:fixed;bottom:0;right:0;left:0;background:#0f2744;color:#fff;padding:5px 16px;display:flex;align-items:center;justify-content:space-between;z-index:300;font-size:12px;font-family:inherit}
+#sbar.ok{background:#065f46}#sbar.warn{background:#92400e}#sbar.err{background:#7f1d1d}
+.sdot{width:8px;height:8px;border-radius:50%;background:#34d399;display:inline-block;margin-left:6px}
+.sdot.o{background:#fbbf24}.sdot.r{background:#f87171}
+.fbubbles{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.fb{display:inline-flex;align-items:center;gap:4px;background:#2563ab;color:#fff;border-radius:14px;padding:3px 10px;font-size:12px;font-weight:600}
+.fbx{cursor:pointer;font-size:14px;opacity:.8}.fbx:hover{opacity:1}
+.cbw{position:relative;width:100%}
+.cbi{width:100%;padding:7px 10px;border:1.5px solid #dde4f0;border-radius:7px;font-size:13px;font-family:inherit;background:#f8fafc}
+.cbi:focus{outline:none;border-color:#3b82f6;background:#fff}
+.cbdd{position:absolute;top:100%;right:0;left:0;background:#fff;border:1.5px solid #3b82f6;border-radius:7px;box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:200;max-height:220px;overflow-y:auto;display:none}
+.cbdd.open{display:block}
+.cbo{display:flex;align-items:center;gap:8px;padding:7px 12px;cursor:pointer;font-size:13px}
+.cbo:hover{background:#eff6ff}
+.cbo input{accent-color:#3b82f6;width:14px;height:14px}
+.mmbtn{display:none;background:none;border:none;color:#fff;font-size:22px;cursor:pointer;padding:0 4px}
+@media(max-width:640px){.mmbtn{display:inline-block}.sb{width:0!important;overflow:hidden!important}.main{margin-right:0!important}.hdr-chips{display:none}.fgrid{grid-template-columns:1fr 1fr!important}.vi-grid{grid-template-columns:1fr 1fr!important}}
+.main{padding-bottom:48px}
+
+.cb-wrap{position:relative}
+.cb-input{width:100%;padding:7px 10px;border:1.5px solid var(--border);
+  border-radius:7px;font-size:13px;font-family:var(--fnt);background:#f8fafc}
+.cb-input:focus{outline:none;border-color:var(--sky);background:#fff}
+.cb-dd{position:absolute;top:100%;right:0;left:0;background:#fff;
+  border:1.5px solid var(--sky);border-radius:7px;box-shadow:0 8px 24px rgba(0,0,0,.12);
+  z-index:60;max-height:220px;overflow-y:auto;display:none}
+.cb-dd.open{display:block}
+.cb-opt{display:flex;align-items:center;gap:8px;padding:7px 12px;cursor:pointer;font-size:13px}
+.cb-opt:hover{background:#eff6ff}
+.cb-opt input[type=checkbox]{accent-color:var(--sky);width:14px;height:14px;cursor:pointer}
+/* BULK EDIT */
+.bulk-bar{display:none;background:#fef3c7;border:1.5px solid #fcd34d;border-radius:8px;
+  padding:8px 14px;margin-bottom:10px;align-items:center;gap:10px;flex-wrap:wrap}
+.bulk-bar.show{display:flex}
+.bulk-cnt{font-size:13px;font-weight:700;color:#92400e}
+</style>
+</head>
+<body>
+<div id="loginScreen">
+  <div class="lbox">
+    <div style="font-size:40px;margin-bottom:8px">🏥</div>
+    <div style="font-size:22px;font-weight:900;color:#0f2744;margin-bottom:4px">بنك المعلومات</div>
+    <div style="font-size:13px;color:#64748b;margin-bottom:24px">نظام إدارة الملاكات الصحية</div>
+    <div class="lfg"><label>اسم المستخدم</label>
+      <input type="text" id="loginUser" placeholder="username" autocomplete="username"></div>
+    <div class="lfg"><label>كلمة المرور</label>
+      <input type="password" id="loginPass" placeholder="••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <div id="loginErr">❌ اسم المستخدم أو كلمة المرور غير صحيحة</div>
+    <button class="lbtn" onclick="doLogin()">دخول ←</button>
+  </div>
+</div>
+<div id="sbar">
+  <div style="display:flex;align-items:center;gap:6px"><span class="sdot" id="sdot"></span><span id="sstat">جاري التحميل...</span></div>
+  <div style="display:flex;gap:6px">
+    <button onclick="manualSave()" style="background:rgba(255,255,255,.18);color:#fff;border:none;border-radius:5px;padding:3px 10px;font-size:11px;cursor:pointer;font-family:inherit">☁️ حفظ</button>
+    <button onclick="reloadSheets()" style="background:rgba(255,255,255,.18);color:#fff;border:none;border-radius:5px;padding:3px 10px;font-size:11px;cursor:pointer;font-family:inherit">🔄 تحديث</button>
+  </div>
+</div>
+
+<!-- HEADER -->
+<div class="hdr">
+  <button class="mob-menu-btn" id="mobMenuBtn" onclick="toggleMobMenu()">☰</button>
+  <button class="mmbtn" onclick="document.getElementById('sb').classList.toggle('sb-open')">☰</button><div class="hdr-brand">🏥 <span>بنك</span> المعلومات</div>
+  <div class="hdr-chips" id="hdrChips"></div>
+</div>
+
+<!-- SIDEBAR -->
+<div class="sb" id="sb">
+  <div class="sb-sec">
+    <div class="sb-ttl">الرئيسية</div>
+    <div class="ni on" data-pg="dash" onclick="nav('dash',this)"><span class="ni-ico">🏠</span>الواجهة الرئيسية</div>
+    <div class="ni" data-pg="stats" onclick="nav('stats',this)"><span class="ni-ico">📊</span>الإحصائيات</div>
+  </div>
+  <div class="sb-sec">
+    <div class="sb-ttl">قواعد البيانات</div>
+    <div id="profNav"></div>
+    <div class="ni" data-pg="all" onclick="nav('all',this)">
+      <span class="ni-ico">👥</span>جميع الملاكات
+      <span class="ni-cnt" id="cntAll">0</span>
+    </div>
+    <div class="ni" data-pg="inactive" onclick="nav('inactive',this)">
+      <span class="ni-ico">📤</span>المغادرون
+      <span class="ni-cnt red" id="cntInactive">0</span>
+    </div>
+    <div class="ni" data-pg="units" onclick="nav('units',this)"><span class="ni-ico">🏨</span>وحدات المستشفى</div>
+    <div class="ni" data-pg="delegates" onclick="nav('delegates',this)"><span class="ni-ico">🔄</span>المنسبون إلينا<span class="ni-cnt" id="cntDelegates">0</span></div>
+    <div class="ni" data-pg="recent" onclick="nav('recent',this)"><span class="ni-ico">🕐</span>آخر التعديلات</div>
+  </div>
+  <div class="sb-sec">
+    <div class="sb-ttl">الإدارة</div>
+    <div class="ni" data-pg="settings" onclick="nav('settings',this)"><span class="ni-ico">⚙️</span>إدارة القوائم</div>
+    <div class="ni" data-pg="cols" onclick="nav('cols',this)"><span class="ni-ico">🗂</span>تخصيص الحقول</div>
+    <div class="ni" data-pg="dbmgr" onclick="nav('dbmgr',this)"><span class="ni-ico">🗄</span>إدارة قاعدة البيانات</div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+<!-- ===== DASHBOARD ===== -->
+<div class="pg on" id="pg-dash">
+  <div style="font-size:18px;font-weight:900;color:var(--navy);margin-bottom:14px">🏠 الواجهة الرئيسية</div>
+  <div class="sg" id="dashStats"></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+    <div class="card"><div class="card-hdr">توزيع حسب المهنة</div><div class="card-body" id="dashProf"></div></div>
+    <div class="card"><div class="card-hdr">توزيع حسب الحالة</div><div class="card-body" id="dashStatus"></div></div>
+  </div>
+</div>
+
+<!-- ===== ALL TABLE ===== -->
+<div class="pg" id="pg-all">
+  <div style="font-size:18px;font-weight:900;color:var(--navy);margin-bottom:14px">👥 جميع الملاكات</div>
+  <div id="fp-all" class="fp"></div>
+  <div class="card">
+    <div class="card-hdr">
+      <span id="tblTitle-all">السجلات</span>
+      <div class="card-hdr-left">
+        <button class="btn btn-red btn-sm" onclick="deleteSelected('all')">🗑 حذف المحدد</button>
+        <button class="btn btn-teal btn-sm" onclick="exportSelected('all')">📤 تصدير المحدد</button>
+        <button class="btn btn-amber btn-sm" onclick="exportAll('all')">📊 تصدير الكل</button>
+        <button class="btn btn-green btn-sm" onclick="openAdd('all')">➕ إضافة</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="tw"><table><thead id="th-all"></thead><tbody id="tb-all"></tbody></table></div>
+      <div class="pager" id="pgr-all"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== INACTIVE ===== -->
+<div class="pg" id="pg-inactive">
+  <div style="font-size:18px;font-weight:900;color:var(--navy);margin-bottom:14px">📤 المغادرون</div>
+  <div id="fp-inactive" class="fp"></div>
+  <div class="card">
+    <div class="card-hdr">
+      <span>المغادرون (مرتبون حسب الأحدث)</span>
+      <div class="card-hdr-left">
+        <button class="btn btn-teal btn-sm" onclick="exportAll('inactive')">📊 تصدير Excel</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="tw"><table><thead id="th-inactive"></thead><tbody id="tb-inactive"></tbody></table></div>
+      <div class="pager" id="pgr-inactive"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== STATS ===== -->
+<div class="pg" id="pg-stats">
+  <div style="font-size:18px;font-weight:900;color:var(--navy);margin-bottom:14px">📊 الإحصائيات الشهرية</div>
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-body" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+      <div class="fg" style="max-width:200px">
+        <label>المهنة</label>
+        <select id="statsProfSel" onchange="onStatsProfChange()">
+          <option value="">جميع المهن</option>
+        </select>
+      </div>
+      <div class="fg" style="max-width:200px">
+        <label>التدرج</label>
+        <select id="statsTadreejSel" onchange="buildStats()">
+          <option value="">كل التدرجات</option>
+        </select>
+      </div>
+      <button class="btn btn-amber" onclick="exportStats()">📊 تصدير Excel</button>
+      <button class="btn btn-navy" onclick="printStats()">🖨 طباعة</button>
+    </div>
+  </div>
+  <div id="statsContent"></div>
+</div>
+
+<!-- ===== UNITS ===== -->
+<div class="pg" id="pg-units">
+  <div style="font-size:18px;font-weight:900;color:var(--navy);margin-bottom:14px">🏨 وحدات المستشفى</div>
+  <div class="card">
+    <div class="card-hdr">
+      إدارة الوحدات
+      <button class="btn btn-green btn-sm" onclick="addUnit()">➕ إضافة وحدة</button>
+    </div>
+    <div class="card-body">
+      <div class="drag-list" id="unitsList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== RECENT ===== -->
+<div class="pg" id="pg-recent">
+  <div style="font-size:18px;font-weight:900;color:var(--navy);margin-bottom:14px">🕐 آخر التعديلات والإضافات</div>
+  <div class="card">
+    <div class="card-body">
+      <div class="tw"><table id="recentTbl">
+        <thead><tr>
+          <th>الاسم الرباعي</th><th>المهنة</th><th>الحالة</th>
+          <th>تاريخ التعديل</th><th>إجراءات</th>
+        </tr></thead>
+        <tbody id="tb-recent"></tbody>
+      </table></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SETTINGS ===== -->
+<div class="pg" id="pg-settings">
+  <div style="font-size:18px;font-weight:900;color:var(--navy);margin-bottom:14px">⚙️ إدارة القوائم</div>
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-body" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+      <div class="fg" style="max-width:180px">
+        <label>اختر المهنة</label>
+        <select id="settingsProfSel" onchange="buildSettings()">
+          <option value="">-- اختر --</option>
+        </select>
+      </div>
+      <p style="font-size:13px;color:var(--muted);align-self:center">اختر مهنة لإدارة التدرجات، الاختصاصات، العناوين الوظيفية لكل درجة</p>
+    </div>
+  </div>
+  <div id="settingsContent"></div>
+</div>
+
+<!-- ===== COLS CUSTOMIZE ===== -->
+<div class="pg" id="pg-cols">
+  <div style="font-size:18px;font-weight:900;color:var(--navy);margin-bottom:14px">🗂 تخصيص الحقول والفلاتر</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+    <div class="card">
+      <div class="card-hdr">حقول الجدول الرئيسي (اسحب لإعادة الترتيب)</div>
+      <div class="card-body">
+        <div class="drag-list" id="colsTableList"></div>
+        <div style="margin-top:10px;font-size:12px;color:var(--muted)">✓ = يظهر في الجدول</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-hdr">حقول الفلتر (اسحب لإعادة الترتيب)</div>
+      <div class="card-body">
+        <div class="drag-list" id="colsFilterList"></div>
+      </div>
+    </div>
+  </div>
+  <div style="margin-top:12px;display:flex;gap:8px">
+    <button class="btn btn-green" onclick="saveColConfig()">💾 حفظ التخصيص</button>
+    <button class="btn btn-ghost" onclick="resetColConfig()">🔄 إعادة تعيين</button>
+  </div>
+</div>
+
+<!-- ===== DB MANAGER ===== -->
+<div class="pg" id="pg-dbmgr">
+  <div style="font-size:18px;font-weight:900;color:var(--navy);margin-bottom:14px">🗄 إدارة قاعدة البيانات</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+    <div class="card">
+      <div class="card-hdr">📤 تصدير</div>
+      <div class="card-body" style="display:flex;flex-direction:column;gap:8px">
+        <button class="btn btn-green" onclick="exportAllExcel()">📊 تصدير كل القاعدة (Excel)</button>
+        <button class="btn btn-ghost" onclick="exportInactiveExcel()">📤 تصدير المغادرين (Excel)</button>
+        <button class="btn btn-navy" onclick="exportJSON()">💾 نسخة احتياطية (JSON)</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-hdr">📥 استيراد</div>
+      <div class="card-body" style="display:flex;flex-direction:column;gap:8px">
+        <label class="btn btn-blue" style="cursor:pointer">
+          📂 رفع ملف Excel
+          <input type="file" accept=".xlsx,.xls" style="display:none" onchange="importExcel(event)">
+        </label>
+        <label class="btn btn-ghost" style="cursor:pointer">
+          💾 استعادة JSON
+          <input type="file" accept=".json" style="display:none" onchange="importJSON(event)">
+        </label>
+        <div id="importMsg" style="font-size:12px;color:var(--muted)"></div>
+      </div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:14px">
+    <div class="card-hdr">ملخص القاعدة</div>
+    <div class="card-body" id="dbSum"></div>
+  </div>
+</div>
+
+
+<!-- DELEGATES PAGE -->
+<div class="pg" id="pg-delegates">
+  <div style="font-size:18px;font-weight:900;color:var(--navy);margin-bottom:14px">🔄 المنسبون إلينا</div>
+  <div class="card">
+    <div class="card-hdr">
+      قائمة المنسبين إلينا
+      <button class="btn btn-green btn-sm" onclick="openAddDelegate()">➕ إضافة</button>
+    </div>
+    <div class="card-body">
+      <div class="tw"><table>
+        <thead><tr>
+          <th>الاسم الرباعي</th><th>العنوان الوظيفي</th>
+          <th>الجهة المنسب منها</th><th>الملاحظات</th><th>إجراءات</th>
+        </tr></thead>
+        <tbody id="delegatesTbl"></tbody>
+      </table></div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<!-- ===== EDIT MODAL ===== -->
+<div class="ov" id="editOv">
+  <div class="modal">
+    <div class="mhdr"><h2 id="editTitle">موظف</h2><button class="mclose" onclick="closeEdit()">×</button></div>
+    <div class="mbody" id="editBody"></div>
+    <div class="mftr">
+      <button class="btn btn-blue" onclick="saveRec()">💾 حفظ</button>
+      <button class="btn btn-ghost" onclick="closeEdit()">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== VIEW MODAL ===== -->
+<div class="ov" id="viewOv">
+  <div class="modal">
+    <div class="mhdr"><h2 id="viewTitle">بيانات الموظف</h2><button class="mclose" onclick="closeView()">×</button></div>
+    <div class="mbody" id="viewBody"></div>
+    <div class="mftr">
+      <button class="btn btn-blue" onclick="editFromView()">✏️ تعديل</button>
+      <button class="btn btn-navy" onclick="printEmployee()">🖨 طباعة</button>
+      <button class="btn btn-ghost" onclick="closeView()">إغلاق</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- DELEGATE MODAL -->
+<div class="ov" id="delegateOv">
+  <div class="modal" style="max-width:600px">
+    <div class="mhdr"><h2 id="delegateTitle">إضافة منسب إلينا</h2><button class="mclose" onclick="document.getElementById('delegateOv').classList.remove('open')">×</button></div>
+    <div class="mbody">
+      <div class="fgrid g2">
+        <div class="fgrp s2"><label>الاسم الرباعي *</label><input type="text" id="del-name" placeholder="الاسم الرباعي"></div>
+        <div class="fgrp"><label>العنوان الوظيفي</label><input type="text" id="del-title"></div>
+        <div class="fgrp"><label>الجهة المنسب منها</label><input type="text" id="del-from"></div>
+        <div class="fgrp s2"><label>الملاحظات</label><input type="text" id="del-notes"></div>
+      </div>
+    </div>
+    <div class="mftr">
+      <button class="btn btn-blue" onclick="saveDelegate()">💾 حفظ</button>
+      <button class="btn btn-ghost" onclick="document.getElementById('delegateOv').classList.remove('open')">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- BULK EDIT MODAL -->
+<div class="ov" id="bulkOv">
+  <div class="modal" style="max-width:600px">
+    <div class="mhdr"><h2>✏️ تعديل جماعي</h2><button class="mclose" onclick="document.getElementById('bulkOv').classList.remove('open')">×</button></div>
+    <div class="mbody">
+      <p style="font-size:13px;color:var(--muted);margin-bottom:16px">اختر الحقول التي تريد تغييرها. اتركها فارغة إذا لا تريد تغييرها.</p>
+      <div class="fgrid g2">
+        <div class="fgrp"><label>المهنة</label>
+          <select id="bulk-prof"><option value="">-- لا تغيير --</option></select>
+        </div>
+        <div class="fgrp"><label>التدرج</label>
+          <select id="bulk-tadreej"><option value="">-- لا تغيير --</option></select>
+        </div>
+        <div class="fgrp"><label>الاختصاص</label>
+          <select id="bulk-spec"><option value="">-- لا تغيير --</option></select>
+        </div>
+        <div class="fgrp"><label>العنوان الوظيفي</label>
+          <select id="bulk-title"><option value="">-- لا تغيير --</option></select>
+        </div>
+        <div class="fgrp"><label>الدرجة</label>
+          <input type="text" id="bulk-deg" placeholder="اتركه فارغاً للإبقاء" oninput="bulkDegChange()">
+        </div>
+        <div class="fgrp"><label>يعمل في</label>
+          <select id="bulk-unit"><option value="">-- لا تغيير --</option></select>
+        </div>
+      </div>
+      <div id="bulkPreview" style="margin-top:14px;font-size:13px;color:var(--muted)"></div>
+    </div>
+    <div class="mftr">
+      <button class="btn btn-amber" onclick="applyBulk()">✅ تطبيق على المحدد</button>
+      <button class="btn btn-ghost" onclick="document.getElementById('bulkOv').classList.remove('open')">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+//  GLOBALS
+// ============================================================
+let DB = {records:[],columns:[],professions:[],statuses:[],workplaces:[],specs:[],inactiveStatuses:[]};
+let CFG = {}; // settings from localStorage
+let PAGE_STATE = {};
+let PROF_PAGES = {};
+let editId = null, editCtx = null, viewId = null;
+
+const INACTIVE = ['منقول منا','تقاعد','ترقين قيد','انهاء خدمات'];
+const PROF_ICO = {طبيب:'🩺',صيدلي:'💊',تمريضي:'👩‍⚕️','تقنيات طبيه':'🔬',صحي:'🏥',اداري:'📋','طبيب اسنان':'🦷',هندسي:'⚙️'};
+const PROF_CLR = {طبيب:'#2563ab',صيدلي:'#7c3aed',تمريضي:'#0d9488','تقنيات طبيه':'#d97706',صحي:'#059669',اداري:'#64748b','طبيب اسنان':'#dc2626',هندسي:'#c2410c'};
+
+// Default table columns
+const DEFAULT_COLS = ['الاسم الرباعي','الرقم الوظيفي','حالة الموظف','الملاحظات','المهنه','التدرج','الاختصاص'];
+
+// Default filter fields
+const DEFAULT_FILTERS = ['الاسم الرباعي','اسم الام الثلاثي','المهنه','التدرج','الاختصاص','تاريخ التولد','تاريخ التعيين','حالة الموظف','الدرجة','العنوان الوظيفي'];
+
+// Multi-select fields
+const MULTI_FIELDS = ['المهنه','التدرج','الاختصاص','حالة الموظف'];
+
+// ============================================================
+//  INIT
+// ============================================================
+async function init(){
+  try{
+    // Data loads from Google Sheets via startApp()
+    DB={records:[],columns:[],professions:[],statuses:[],workplaces:[],specs:[],inactiveStatuses:INACTIVE};
+  }catch(e){}
+  
+  const sv = localStorage.getItem('hmsCFG');
+  if(sv) try{ CFG=JSON.parse(sv); }catch(e){}
+  
+  // Merge defaults
+  if(!CFG.profTitles) CFG.profTitles={};
+  if(!CFG.profTadreej) CFG.profTadreej={}; // {prof: [{name,specs:[],titles:{درجة:[عنوان,...]}}]}
+  if(!CFG.quotas) CFG.quotas={};
+  if(!CFG.units) CFG.units=[];
+  if(!CFG.tableCols) CFG.tableCols=[...DEFAULT_COLS];
+  if(!CFG.filterFields) CFG.filterFields=[...DEFAULT_FILTERS];
+  
+  // Populate settings prof select
+  DB.professions.forEach(p=>{
+    appendOpt('settingsProfSel',p);
+    appendOpt('statsProfSel',p);
+  });
+  
+  buildNav();
+  buildDash();
+  buildStatsPage();
+  buildUnits();
+  buildColConfig();
+  buildDbSum();
+  buildRecent();
+  buildPage('all',null,false);
+  buildPage('inactive',null,true);
+  DB.professions.forEach(p=>buildPage('prof_'+p,p,false));
+  buildSettingsPage();
+}
+
+function appendOpt(selId,val){
+  const o=document.createElement('option');
+  o.value=val;o.textContent=val;
+  document.getElementById(selId).appendChild(o);
+}
+
+// ============================================================
+//  NAV
+// ============================================================
+function buildNav(){
+  const active = DB.records.filter(r=>r._active==='1');
+  const inactive = DB.records.filter(r=>r._active==='0');
+  document.getElementById('cntAll').textContent=active.length;
+  document.getElementById('cntInactive').textContent=inactive.length;
+  
+  const profCnts={};
+  active.forEach(r=>{ const p=r['المهنه']||'?'; profCnts[p]=(profCnts[p]||0)+1; });
+  
+  document.getElementById('profNav').innerHTML = DB.professions.map(p=>`
+    <div class="ni" data-pg="prof_${p}" onclick="nav('prof_${p}',this)">
+      <span class="ni-ico">${PROF_ICO[p]||'👤'}</span>${p}
+      <span class="ni-cnt">${profCnts[p]||0}</span>
+    </div>`).join('');
+  
+  document.getElementById('hdrChips').innerHTML = DB.professions.map(p=>`
+    <div class="chip" onclick="nav('prof_${p}',document.querySelector('[data-pg=\\'prof_${p}\\']'))">
+      ${PROF_ICO[p]||'👤'} ${p} <b>${profCnts[p]||0}</b>
+    </div>`).join('');
+}
+
+function nav(id,el){
+  document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('on'));
+  const pg=document.getElementById('pg-'+id);
+  if(pg) pg.classList.add('on');
+  if(el) el.classList.add('on');
+  window.scrollTo(0,0);
+}
+
+// ============================================================
+//  DASHBOARD
+// ============================================================
+function buildDash(){
+  const active=DB.records.filter(r=>r._active==='1');
+  const inactive=DB.records.filter(r=>r._active==='0');
+  const working=active.filter(r=>(r['حالة الموظف']||'').includes('مستمر'));
+  const onLeave=active.filter(r=>{const s=r['حالة الموظف']||'';return s.includes('اجازة')||s.includes('اجازه');});
+  const delegated=active.filter(r=>(r['حالة الموظف']||'').includes('منسب'));
+  
+  const profC={};
+  active.forEach(r=>{const p=r['المهنه']||'?';profC[p]=(profC[p]||0)+1;});
+  
+  document.getElementById('dashStats').innerHTML=`
+    <div class="sc blue"><div class="sc-lbl">إجمالي الملاك الفعلي</div><div class="sc-val">${active.length}</div><div class="sc-sub">من ${DB.records.length} إجمالي</div></div>
+    <div class="sc green"><div class="sc-lbl">مستمر بالخدمة</div><div class="sc-val">${working.length}</div></div>
+    <div class="sc amber"><div class="sc-lbl">إجازة / منسب</div><div class="sc-val">${onLeave.length+delegated.length}</div></div>
+    <div class="sc red"><div class="sc-lbl">المغادرون</div><div class="sc-val">${inactive.length}</div></div>
+    ${DB.professions.map(p=>`
+      <div class="sc" style="border-color:${PROF_CLR[p]||'#3b82f6'}" onclick="nav('prof_${p}',document.querySelector('[data-pg=\\'prof_${p}\\']'))">
+        <div class="sc-lbl">${PROF_ICO[p]||'👤'} ${p}</div>
+        <div class="sc-val" style="color:${PROF_CLR[p]||'#1a4a8a'}">${profC[p]||0}</div>
+      </div>`).join('')}`;
+  
+  document.getElementById('dashProf').innerHTML=DB.professions.map(p=>{
+    const c=profC[p]||0,pct=active.length?(c/active.length*100).toFixed(1):0;
+    return `<div style="margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
+        <span>${PROF_ICO[p]||'👤'} ${p}</span><span><b>${c}</b> (${pct}%)</span>
+      </div>
+      <div style="background:#f1f5fb;border-radius:4px;height:7px">
+        <div style="background:${PROF_CLR[p]};height:7px;border-radius:4px;width:${pct}%;transition:.5s"></div>
+      </div></div>`;
+  }).join('');
+  
+  const stC={};
+  DB.records.forEach(r=>{const s=r['حالة الموظف']||'?';stC[s]=(stC[s]||0)+1;});
+  document.getElementById('dashStatus').innerHTML=Object.entries(stC).sort((a,b)=>b[1]-a[1]).map(([s,c])=>{
+    const pct=(c/DB.records.length*100).toFixed(1);
+    return `<div style="margin-bottom:7px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:2px">
+        <span>${statusBdg(s)}</span><span><b>${c}</b> (${pct}%)</span>
+      </div>
+      <div style="background:#f1f5fb;border-radius:4px;height:5px">
+        <div style="background:#3b82f6;height:5px;border-radius:4px;width:${pct}%"></div>
+      </div></div>`;
+  }).join('');
+}
+
+// ============================================================
+//  STATUS BADGE
+// ============================================================
+function statusBdg(v){
+  if(!v) return `<span class="bdg bdg-gray">—</span>`;
+  if(v.includes('مستمر')) return `<span class="bdg bdg-green">${v}</span>`;
+  if(v.includes('اجازة')||v.includes('اجازه')) return `<span class="bdg bdg-amber">${v}</span>`;
+  if(v.includes('منسب')||v.includes('منقول الينا')) return `<span class="bdg bdg-blue">${v}</span>`;
+  if(INACTIVE.includes(v)) return `<span class="bdg bdg-red">${v}</span>`;
+  return `<span class="bdg bdg-gray">${v}</span>`;
+}
+
+function profBdg(v){
+  const cls={طبيب:'bdg-blue',صيدلي:'bdg-purple',تمريضي:'bdg-teal','تقنيات طبيه':'bdg-amber',صحي:'bdg-green',اداري:'bdg-gray','طبيب اسنان':'bdg-red',هندسي:'bdg-gray'};
+  return `<span class="bdg ${cls[v]||'bdg-gray'}">${v||''}</span>`;
+}
+
+// ============================================================
+//  PAGE STATE + TABLE
+// ============================================================
+function pst(ctx){
+  if(!PAGE_STATE[ctx]) PAGE_STATE[ctx]={page:1,size:50,search:'',msel:{},sort:null,sdir:1,data:[]};
+  return PAGE_STATE[ctx];
+}
+
+function buildPage(ctx, prof, isInactive){
+  PROF_PAGES[ctx]={prof,isInactive};
+  // Create HTML page for prof pages
+  if(prof && !document.getElementById('pg-'+ctx)){
+    const d=document.createElement('div');
+    d.className='pg'; d.id='pg-'+ctx;
+    d.innerHTML=`
+      <div style="font-size:18px;font-weight:900;color:var(--navy);margin-bottom:14px">${PROF_ICO[prof]||'👤'} ملاكات ${prof}</div>
+      <div class="fp" id="fp-${ctx}"></div>
+      <div class="card">
+        <div class="card-hdr">
+          <span id="tblTitle-${ctx}">السجلات</span>
+          <div class="card-hdr-left">
+            <button class="btn btn-red btn-sm" onclick="deleteSelected('${ctx}')">🗑 حذف المحدد</button>
+            <button class="btn btn-teal btn-sm" onclick="exportSelected('${ctx}')">📤 تصدير المحدد</button>
+            <button class="btn btn-amber btn-sm" onclick="exportAll('${ctx}')">📊 تصدير الكل</button>
+            <button class="btn btn-green btn-sm" onclick="openAdd('${ctx}','${prof}')">➕ إضافة</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="tw"><table><thead id="th-${ctx}"></thead><tbody id="tb-${ctx}"></tbody></table></div>
+          <div class="pager" id="pgr-${ctx}"></div>
+        </div>
+      </div>`;
+    document.querySelector('.main').appendChild(d);
+  }
+  buildFilters(ctx, prof, isInactive);
+  renderTable(ctx);
+}
+
+// ============================================================
+//  FILTERS
+// ============================================================
+function buildFilters(ctx, prof, isInactive){
+  const el=document.getElementById('fp-'+ctx);
+  if(!el) return;
+  
+  const srcData = getSource(ctx);
+  const fields = CFG.filterFields.filter(f => f !== 'الاسم الرباعي'); // search handles name
+  
+  const filtersHtml = fields.map(f=>{
+    if(f==='اسم الام الثلاثي') return ''; // skip, covered by search
+    if(MULTI_FIELDS.includes(f)){
+      const opts = getUniq(srcData, f);
+      return `<div class="fg ms-wrap" style="min-width:140px;flex:1">
+        <label>${f}</label>
+        <div class="ms-btn" onclick="toggleMS(this)" id="ms-${ctx}-${f.replace(/\s/g,'_')}">${f} <span class="ms-sel-count" id="msc-${ctx}-${f.replace(/\s/g,'_')}" style="display:none">0</span></div>
+        <div class="ms-dropdown" id="msd-${ctx}-${f.replace(/\s/g,'_')}">
+          ${opts.map(o=>`<label class="ms-opt"><input type="checkbox" value="${o}" onchange="mselChange('${ctx}','${f}')"> ${o}</label>`).join('')}
+        </div>
+      </div>`;
+    }
+    return `<div class="fg" style="min-width:130px;flex:1">
+      <label>${f}</label>
+      <input type="text" placeholder="${f}..." oninput="setF('${ctx}','${f}',this.value)" id="fi-${ctx}-${f.replace(/\s/g,'_')}">
+    </div>`;
+  }).join('');
+  
+  el.innerHTML=`
+    <div class="fp-top">
+      <div class="fg" style="flex:2;min-width:200px">
+        <label>🔍 بحث بالاسم</label>
+        <input type="text" placeholder="ابحث بالاسم..." oninput="setSearch('${ctx}',this.value)" id="srch-${ctx}">
+      </div>
+      <div class="fp-count">النتائج: <b id="fc-${ctx}">0</b></div>
+      <button class="btn btn-ghost btn-sm" onclick="resetF('${ctx}')">🔄 إعادة تعيين</button>
+    </div>
+    <div class="fp-row">${filtersHtml}</div>`;
+}
+
+function getUniq(src, field){
+  const s=new Set();
+  src.forEach(r=>{ if(r[field]) s.add(r[field].trim()); });
+  return [...s].sort((a,b)=>a.localeCompare(b,'ar'));
+}
+
+function toggleMS(btn){
+  const dd=btn.nextElementSibling;
+  btn.classList.toggle('open');
+  dd.classList.toggle('open');
+  document.addEventListener('click',function closer(e){
+    if(!btn.parentElement.contains(e.target)){
+      btn.classList.remove('open');
+      dd.classList.remove('open');
+      document.removeEventListener('click',closer);
+    }
+  },{once:false});
+}
+
+function mselChange(ctx, field){
+  const key = field.replace(/\s/g,'_');
+  const dd = document.getElementById(`msd-${ctx}-${key}`);
+  const checked = [...dd.querySelectorAll('input:checked')].map(i=>i.value);
+  const st = pst(ctx);
+  if(!st.msel) st.msel={};
+  st.msel[field] = checked;
+  const cnt = document.getElementById(`msc-${ctx}-${key}`);
+  if(cnt){ cnt.textContent=checked.length; cnt.style.display=checked.length?'':'none'; }
+  st.page=1; renderTable(ctx);
+}
+
+function setF(ctx,field,val){ const st=pst(ctx); if(!st.filters) st.filters={}; st.filters[field]=val; st.page=1; renderTable(ctx); }
+function setSearch(ctx,val){ pst(ctx).search=val; pst(ctx).page=1; renderTable(ctx); }
+
+function resetF(ctx){
+  PAGE_STATE[ctx]={page:1,size:50,search:'',msel:{},filters:{},sort:null,sdir:1,data:[]};
+  buildFilters(ctx, PROF_PAGES[ctx]?.prof, PROF_PAGES[ctx]?.isInactive);
+  renderTable(ctx);
+}
+
+// ============================================================
+//  GET SOURCE DATA
+// ============================================================
+function getSource(ctx){
+  const info = PROF_PAGES[ctx];
+  if(!info) return [];
+  if(info.isInactive) return DB.records.filter(r=>r._active==='0').sort((a,b)=>{
+    const da=a['تاريخ تعديل البيانات']||a['_modified']||'';
+    const db2=b['تاريخ تعديل البيانات']||b['_modified']||'';
+    return db2.localeCompare(da);
+  });
+  if(info.prof) return DB.records.filter(r=>r._active==='1'&&r['المهنه']===info.prof);
+  return DB.records.filter(r=>r._active==='1');
+}
+
+// ============================================================
+//  RENDER TABLE
+// ============================================================
+function renderTable(ctx){
+  const st=pst(ctx);
+  let data=getSource(ctx);
+  
+  // Apply search (name only)
+  if(st.search){
+    const s=st.search.toLowerCase();
+    data=data.filter(r=>(r['الاسم الرباعي']||'').toLowerCase().includes(s));
+  }
+  // Apply multi-select filters
+  if(st.msel){
+    Object.entries(st.msel).forEach(([f,vals])=>{
+      if(vals&&vals.length) data=data.filter(r=>vals.includes(r[f]||''));
+    });
+  }
+  // Apply text filters
+  if(st.filters){
+    Object.entries(st.filters).forEach(([f,v])=>{
+      if(v) data=data.filter(r=>(r[f]||'').includes(v));
+    });
+  }
+  // Sort
+  if(st.sort){
+    data.sort((a,b)=>{
+      const av=a[st.sort]||'',bv=b[st.sort]||'';
+      const an=parseFloat(av),bn=parseFloat(bv);
+      if(!isNaN(an)&&!isNaN(bn)) return (an-bn)*st.sdir;
+      return av.localeCompare(bv,'ar')*st.sdir;
+    });
+  }
+  st.data=data;
+  
+  const fc=document.getElementById('fc-'+ctx);
+  if(fc) fc.textContent=data.length;
+  
+  const tTitle=document.getElementById('tblTitle-'+ctx);
+  if(tTitle) tTitle.textContent=`السجلات (${data.length})`;
+  
+  const cols=CFG.tableCols;
+  // Header
+  const th=document.getElementById('th-'+ctx);
+  if(th) th.innerHTML=`<tr>
+    <th class="cb-col"><input type="checkbox" onchange="selAll(this,'${ctx}')"></th>
+    ${cols.map(c=>`<th onclick="sortT('${ctx}','${c}')">${c}<span class="si">${st.sort===c?st.sdir===1?'▲':'▼':''}</span></th>`).join('')}
+    <th>إجراءات</th></tr>`;
+  
+  const start=(st.page-1)*st.size;
+  const page=data.slice(start,start+st.size);
+  const tbody=document.getElementById('tb-'+ctx);
+  if(!tbody) return;
+  
+  const now=new Date();
+  const recentTs=now.getTime()-24*3600*1000;
+  
+  if(!page.length){
+    tbody.innerHTML=`<tr><td colspan="${cols.length+2}" style="text-align:center;padding:40px;color:var(--muted)">📭 لا توجد نتائج</td></tr>`;
+  } else {
+    tbody.innerHTML=page.map(r=>{
+      const isNew=r._created&&new Date(r._created).getTime()>recentTs;
+      const isMod=r._modified&&new Date(r._modified).getTime()>recentTs&&!isNew;
+      const cls=isNew?'style="background:#f0fdf4!important"':isMod?'class="mod-row"':'';
+      return `<tr ${cls} data-id="${r._id}">
+        <td class="cb-col"><input type="checkbox" onchange="selRow(this,'${ctx}')"></td>
+        ${cols.map(c=>{
+          const v=r[c]||'';
+          if(c==='حالة الموظف') return `<td>${statusBdg(v)}</td>`;
+          if(c==='المهنه') return `<td>${profBdg(v)}</td>`;
+          return `<td title="${v}">${v}</td>`;
+        }).join('')}
+        <td>
+          <button class="btn btn-ghost btn-xs" onclick="viewRec(${r._id},'${ctx}')">👁</button>
+          <button class="btn btn-blue btn-xs" onclick="openEdit(${r._id},'${ctx}')">✏️</button>
+        </td></tr>`;
+    }).join('');
+  }
+  renderPager(ctx, data.length);
+}
+
+function sortT(ctx,col){
+  const st=pst(ctx);
+  if(st.sort===col) st.sdir*=-1; else{st.sort=col;st.sdir=1;}
+  renderTable(ctx);
+}
+
+// ============================================================
+//  PAGER
+// ============================================================
+function renderPager(ctx,total){
+  const el=document.getElementById('pgr-'+ctx);
+  if(!el) return;
+  const st=pst(ctx);
+  const pages=Math.ceil(total/st.size);
+  const s=(st.page-1)*st.size+1,e=Math.min(st.page*st.size,total);
+  let html=`<div class="pg-info">عرض ${s}–${e} من ${total}</div><div class="pg-btns">`;
+  html+=`<button class="pb" onclick="goPg('${ctx}',1)" ${st.page===1?'disabled':''}>⏮</button>`;
+  html+=`<button class="pb" onclick="goPg('${ctx}',${st.page-1})" ${st.page===1?'disabled':''}>‹</button>`;
+  let f=Math.max(1,st.page-2),t2=Math.min(pages,f+4);f=Math.max(1,t2-4);
+  for(let p=f;p<=t2;p++) html+=`<button class="pb ${p===st.page?'on':''}" onclick="goPg('${ctx}',${p})">${p}</button>`;
+  html+=`<button class="pb" onclick="goPg('${ctx}',${st.page+1})" ${st.page>=pages?'disabled':''}>›</button>`;
+  html+=`<button class="pb" onclick="goPg('${ctx}',${pages})" ${st.page>=pages?'disabled':''}>⏭</button>`;
+  html+=`</div><select class="pb" onchange="setSz('${ctx}',this.value)" style="font-family:var(--fnt)">
+    <option value="25">25</option><option value="50" selected>50</option>
+    <option value="100">100</option><option value="200">200</option></select>`;
+  el.innerHTML=html;
+}
+function goPg(ctx,p){ pst(ctx).page=parseInt(p); renderTable(ctx); document.querySelector('.tw')?.scrollIntoView({behavior:'smooth',block:'start'}); }
+function setSz(ctx,s){ pst(ctx).size=parseInt(s); pst(ctx).page=1; renderTable(ctx); }
+
+// ============================================================
+//  SELECTION
+// ============================================================
+function selAll(cb,ctx){
+  const tbody=document.getElementById('tb-'+ctx);
+  tbody.querySelectorAll('input[type=checkbox]').forEach(c=>c.checked=cb.checked);
+  tbody.querySelectorAll('tr').forEach(r=>{ if(cb.checked) r.classList.add('selected'); else r.classList.remove('selected'); });
+}
+function selRow(cb,ctx){
+  const tr=cb.closest('tr');
+  if(cb.checked) tr.classList.add('selected'); else tr.classList.remove('selected');
+}
+function getSelected(ctx){
+  const tbody=document.getElementById('tb-'+ctx);
+  if(!tbody) return [];
+  return [...tbody.querySelectorAll('tr.selected')].map(r=>parseInt(r.dataset.id));
+}
+
+// ============================================================
+//  DELETE
+// ============================================================
+function deleteSelected(ctx){
+  const ids=getSelected(ctx);
+  if(!ids.length){ toast('لم تحدد أي سجل',true); return; }
+  if(!confirm(`هل تريد حذف ${ids.length} سجل؟`)) return;
+  DB.records=DB.records.filter(r=>!ids.includes(r._id));
+  refreshAll(); toast(`✅ تم حذف ${ids.length} سجل`);
+}
+
+// ============================================================
+//  EXPORT EXCEL (SheetJS - proper columns)
+// ============================================================
+function toWS(data, cols){
+  const ws={};
+  const r0=0;
+  cols.forEach((c,ci)=>{
+    const cell={v:c,t:'s'};
+    const addr=XLSX.utils.encode_cell({r:r0,c:ci});
+    ws[addr]=cell;
+  });
+  data.forEach((rec,ri)=>{
+    cols.forEach((c,ci)=>{
+      let v=rec[c]||'';
+      if(typeof v==='string') v=v.replace(/[\r\n]+/g,' ');
+      const cell={v,t:'s'};
+      const addr=XLSX.utils.encode_cell({r:ri+1,c:ci});
+      ws[addr]=cell;
+    });
+  });
+  ws['!ref']=XLSX.utils.encode_range({s:{r:0,c:0},e:{r:data.length,c:cols.length-1}});
+  const colWidths=cols.map(c=>({wch:Math.max(c.length*2,12)}));
+  ws['!cols']=colWidths;
+  return ws;
+}
+
+function doExport(data, filename){
+  if(!data.length){ toast('لا توجد بيانات',true); return; }
+  const cols=DB.columns.length?DB.columns:Object.keys(data[0]).filter(k=>!k.startsWith('_'));
+  const wb=XLSX.utils.book_new();
+  const ws=toWS(data,cols);
+  XLSX.utils.book_append_sheet(wb,ws,'البيانات');
+  XLSX.writeFile(wb, filename+'.xlsx');
+  toast('✅ تم التصدير: '+filename+'.xlsx');
+}
+
+function exportAll(ctx){
+  const st=pst(ctx);
+  const data=st.data.length?st.data:getSource(ctx);
+  doExport(data,`بيانات_${ctx}_${dateStr()}`);
+}
+
+function exportSelected(ctx){
+  const ids=getSelected(ctx);
+  if(!ids.length){ toast('لم تحدد أي سجل',true); return; }
+  const data=DB.records.filter(r=>ids.includes(r._id));
+  doExport(data,`محدد_${dateStr()}`);
+}
+
+function exportAllExcel(){ doExport(DB.records.filter(r=>r._active==='1'),'القاعدة_الكاملة_'+dateStr()); }
+function exportInactiveExcel(){ doExport(DB.records.filter(r=>r._active==='0'),'المغادرون_'+dateStr()); }
+
+function exportJSON(){
+  const j=JSON.stringify({records:DB.records,columns:DB.columns,cfg:CFG},null,2);
+  const b=new Blob([j],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(b);
+  a.download='backup_'+dateStr()+'.json';
+  a.click();
+  toast('✅ تم تصدير النسخة الاحتياطية');
+}
+
+function dateStr(){ return new Date().toLocaleDateString('ar-IQ').replace(/\//g,'-'); }
+
+// ============================================================
+//  IMPORT
+// ============================================================
+function importExcel(e){
+  const file=e.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const wb=XLSX.read(ev.target.result,{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const raw=XLSX.utils.sheet_to_json(ws,{defval:'',raw:false});
+      if(!raw.length){ toast('الملف فارغ',true); return; }
+      const cols=Object.keys(raw[0]);
+      DB.columns=cols;
+      DB.records=raw.map((row,i)=>{
+        const r={...row,_id:i,_active:'1',_created:'',_modified:''};
+        Object.keys(r).forEach(k=>{if(typeof r[k]==='string') r[k]=r[k].trim();});
+        const s=r['حالة الموظف']||'';
+        r._active=INACTIVE.includes(s)?'0':'1';
+        return r;
+      });
+      refreshAll();
+      document.getElementById('importMsg').textContent=`✅ تم استيراد ${DB.records.length} سجل`;
+      toast(`✅ تم استيراد ${DB.records.length} سجل`);
+    }catch(err){ toast('❌ خطأ: '+err.message,true); }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function importJSON(e){
+  const file=e.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const p=JSON.parse(ev.target.result);
+      DB.records=p.records||[];
+      DB.columns=p.columns||[];
+      if(p.cfg){ CFG=p.cfg; saveCFG(); }
+      refreshAll();
+      toast('✅ تمت الاستعادة');
+    }catch(err){ toast('❌ خطأ في الملف',true); }
+  };
+  reader.readAsText(file,'utf-8');
+}
+
+// ============================================================
+//  FORM
+// ============================================================
+function fv(r,k){ return r?(r[k]||''):''; }
+function fIn(field,val){ return `<input type="text" data-field="${field}" value="${val.replace(/"/g,'&quot;')}">`; }
+function fSel(field,opts,cur){
+  return `<select data-field="${field}"><option value="">-- اختر --</option>
+    ${opts.map(o=>`<option${cur===o?' selected':''}>${o}</option>`).join('')}</select>`;
+}
+
+// buildForm replaced below
+
+// onProfChange replaced below
+
+function openAdd(ctx,defaultProf){
+  editId=null; editCtx=ctx;
+  document.getElementById('editTitle').textContent='➕ إضافة موظف جديد';
+  document.getElementById('editBody').innerHTML=buildForm(null,defaultProf);
+  document.getElementById('editOv').classList.add('open');
+}
+function openEdit(id,ctx){
+  const rec=DB.records.find(r=>r._id===id); if(!rec) return;
+  editId=id; editCtx=ctx;
+  document.getElementById('editTitle').textContent=`✏️ تعديل: ${rec['الاسم الرباعي']||''}`;
+  document.getElementById('editBody').innerHTML=buildForm(rec);
+  document.getElementById('editOv').classList.add('open');
+}
+function closeEdit(){ document.getElementById('editOv').classList.remove('open'); }
+
+// saveRec replaced below
+
+// ============================================================
+//  VIEW RECORD
+// ============================================================
+function viewRec(id,ctx){
+  const rec=DB.records.find(r=>r._id===id); if(!rec) return;
+  viewId=id; editCtx=ctx;
+  document.getElementById('viewTitle').textContent=rec['الاسم الرباعي']||'';
+  
+  const cols=DB.columns.length?DB.columns:Object.keys(rec).filter(k=>!k.startsWith('_'));
+  
+  document.getElementById('viewBody').innerHTML=`
+    <div class="vi-top">
+      ${profBdg(rec['المهنه']||'')} ${statusBdg(rec['حالة الموظف']||'')}
+      <span style="font-size:13px;color:var(--muted)">${rec['العنوان الوظيفي']||''}</span>
+      <span style="font-size:13px;color:var(--muted)">${rec['التدرج']||''}</span>
+    </div>
+    ${rec['الملاحظات']?`<div class="vi-note"><div class="vi-note-lbl">⚠️ الملاحظات</div>${rec['الملاحظات']}</div>`:''}
+    <div class="vi-grid">
+      ${cols.map(k=>rec[k]?`<div class="vi-item"><div class="vi-lbl">${k}</div><div class="vi-val">${rec[k]}</div></div>`:'').join('')}
+    </div>`;
+  document.getElementById('viewOv').classList.add('open');
+}
+function closeView(){ document.getElementById('viewOv').classList.remove('open'); }
+function editFromView(){ closeView(); setTimeout(()=>openEdit(viewId,editCtx),100); }
+
+function printEmployee(){
+  const rec=DB.records.find(r=>r._id===viewId); if(!rec) return;
+  const cols=DB.columns.length?DB.columns:Object.keys(rec).filter(k=>!k.startsWith('_'));
+  const w=window.open('','_blank');
+  w.document.write(`<html dir="rtl"><head><meta charset="UTF-8">
+    <style>body{font-family:Tahoma;padding:20px}h2{color:#0f2744}
+    table{width:100%;border-collapse:collapse;font-size:12px}
+    td{padding:6px 10px;border:1px solid #ccc}
+    .lbl{background:#f1f5fb;font-weight:bold;width:35%}
+    @media print{button{display:none}}</style></head>
+    <body><h2>بيانات الموظف: ${rec['الاسم الرباعي']||''}</h2>
+    <p>تاريخ الطباعة: ${new Date().toLocaleString('ar-IQ')}</p>
+    <table>${cols.filter(k=>rec[k]).map(k=>`<tr><td class="lbl">${k}</td><td>${rec[k]}</td></tr>`).join('')}</table>
+    <button onclick="window.print()">طباعة</button>
+    </body></html>`);
+  w.document.close();
+}
+
+// ============================================================
+//  STATS
+// ============================================================
+function buildStatsPage(){
+  const profSel=document.getElementById('statsProfSel'); if(!profSel) return;
+  // already populated in init
+  buildStats();
+}
+
+function buildStats(){
+  const profFilter=document.getElementById('statsProfSel')?.value||'';
+  const profs=profFilter?[profFilter]:DB.professions;
+  const active=DB.records.filter(r=>r._active==='1');
+  
+  let html='';
+  profs.forEach(prof=>{
+    const recs=active.filter(r=>r['المهنه']===prof);
+    const tadInfo=CFG.profTadreej[prof]||[];
+    const hasTadreej=tadInfo.length>0;
+    
+    if(hasTadreej){
+      // Group by tadreej
+      tadInfo.forEach(tad=>{
+        const tadRecs=recs.filter(r=>r['التدرج']===tad.name);
+        html+=buildStatsBox(prof,tad.name,tad.specs||[],tadRecs,CFG.quotas[`${prof}_${tad.name}`]);
+      });
+      // Also ungrouped
+      const ungrouped=recs.filter(r=>!r['التدرج']||!tadInfo.find(t=>t.name===r['التدرج']));
+      if(ungrouped.length) html+=buildStatsBox(prof,'(بدون تدرج)',[],ungrouped,null);
+    } else {
+      html+=buildStatsBox(prof,null,DB.specs||[],recs,CFG.quotas[prof]);
+    }
+  });
+  
+  document.getElementById('statsContent').innerHTML=html||'<p style="color:var(--muted);padding:20px">لا توجد بيانات</p>';
+}
+
+function buildStatsBox(prof, tadreej, specList, recs, quota){
+  const total=recs.length;
+  const working=recs.filter(r=>(r['حالة الموظف']||'').includes('مستمر')).length;
+  const leave=recs.filter(r=>{const s=r['حالة الموظف']||'';return s.includes('اجازة')||s.includes('اجازه');}).length;
+  const delegated=recs.filter(r=>(r['حالة الموظف']||'').includes('منسب')).length;
+  const q=quota||0;
+  const surplus=q>0?Math.max(0,working-q):0;
+  const need=q>0?Math.max(0,q-working):0;
+  const qKey=tadreej?`${prof}_${tadreej}`:prof;
+  
+  // Group by spec
+  const specMap={};
+  recs.forEach(r=>{
+    const sp=r['الاختصاص']||'غير محدد';
+    if(!specMap[sp]) specMap[sp]={total:0,working:0,leave:0,delegated:0};
+    specMap[sp].total++;
+    const s=r['حالة الموظف']||'';
+    if(s.includes('مستمر')) specMap[sp].working++;
+    else if(s.includes('اجازة')||s.includes('اجازه')) specMap[sp].leave++;
+    else if(s.includes('منسب')) specMap[sp].delegated++;
+  });
+  
+  const title=tadreej?`${PROF_ICO[prof]||'👤'} ${prof} — ${tadreej}`:prof;
+  const clr=PROF_CLR[prof]||'#2563ab';
+  const cols4='grid-template-columns:1fr 1fr 1fr 1fr';
+  const cols8='grid-template-columns:1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr';
+  
+  return `<div class="stats-box">
+    <div class="sbox-hdr" style="background:${clr}18;border-bottom-color:${clr}">
+      <span style="color:${clr}">${title}</span>
+      <div style="display:flex;gap:8px;align-items:center">
+        <small style="color:var(--muted)">القياسي:</small>
+        <input type="number" value="${q}" min="0" style="width:65px;padding:4px 8px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;text-align:center;font-family:var(--fnt)" onchange="setQuota('${qKey}',this.value)">
+      </div>
+    </div>
+    <div class="srow" style="${cols8}">
+      <div class="scell h">الإجمالي</div><div class="scell h">مستمر</div>
+      <div class="scell h">إجازة</div><div class="scell h">منسب</div>
+      <div class="scell h">القياسي</div><div class="scell h">الفائض</div>
+      <div class="scell h">الاحتياج</div><div class="scell h">الغياب</div>
+    </div>
+    <div class="srow" style="${cols8}">
+      <div class="scell bl">${total}</div>
+      <div class="scell gr">${working}</div>
+      <div class="scell am">${leave}</div>
+      <div class="scell am">${delegated}</div>
+      <div class="scell">${q||'—'}</div>
+      <div class="scell ${surplus>0?'gr':''}"">${surplus||'—'}</div>
+      <div class="scell ${need>0?'rd':''}"">${need||'—'}</div>
+      <div class="scell rd">${total-working}</div>
+    </div>
+    ${Object.keys(specMap).length>1?`
+    <div class="srow" style="grid-template-columns:2fr 1fr 1fr 1fr 1fr;background:#f8fafc">
+      <div class="scell h">الاختصاص</div><div class="scell h">الكلي</div>
+      <div class="scell h">مستمر</div><div class="scell h">إجازة</div><div class="scell h">منسب</div>
+    </div>
+    ${Object.entries(specMap).sort((a,b)=>b[1].total-a[1].total).map(([sp,d])=>`
+    <div class="srow" style="grid-template-columns:2fr 1fr 1fr 1fr 1fr">
+      <div class="scell" style="font-size:12px;text-align:right">${sp}</div>
+      <div class="scell bl">${d.total}</div><div class="scell gr">${d.working}</div>
+      <div class="scell am">${d.leave}</div><div class="scell am">${d.delegated}</div>
+    </div>`).join('')}`:''}
+  </div>`;
+}
+
+function setQuota(key,val){
+  CFG.quotas[key]=parseInt(val)||0;
+  saveCFG(); buildStats();
+}
+
+// printStats remains below
+
+function printStats(){
+  const el=document.getElementById('statsContent');
+  const w=window.open('','_blank');
+  w.document.write(`<html dir="rtl"><head><meta charset="UTF-8"><style>
+    body{font-family:Tahoma;padding:20px}
+    table,div.srow{display:table;width:100%;border-collapse:collapse}
+    .srow>div{display:table-cell;border:1px solid #ccc;padding:5px 8px;text-align:center;font-size:11px}
+    .stats-box{margin-bottom:20px;page-break-inside:avoid}
+    .sbox-hdr{padding:8px 12px;font-weight:bold;border:1px solid #ccc;background:#f0f5ff}
+    input[type=number]{border:1px solid #ccc;padding:2px 4px;font-size:11px}
+    @media print{button{display:none}input{pointer-events:none}}</style></head>
+    <body><h2>الإحصائيات الشهرية — ${new Date().toLocaleDateString('ar-IQ')}</h2>
+    ${el.innerHTML}<br><button onclick="window.print()">🖨 طباعة</button></body></html>`);
+  w.document.close();
+}
+
+// ============================================================
+//  SETTINGS (HIERARCHICAL)
+// ============================================================
+function buildSettings(){ 
+  const prof=document.getElementById('settingsProfSel')?.value;
+  if(!prof){ document.getElementById('settingsContent').innerHTML=''; return; }
+  if(!CFG.profTadreej[prof]) CFG.profTadreej[prof]=[];
+  const tadInfo=CFG.profTadreej[prof];
+  
+  document.getElementById('settingsContent').innerHTML=`
+  <div style="display:grid;grid-template-columns:1fr 2fr;gap:14px">
+    <div class="card">
+      <div class="card-hdr">التدرج</div>
+      <div class="card-body">
+        <p style="font-size:12px;color:var(--muted);margin-bottom:8px">هل لهذه المهنة تدرج وظيفي؟</p>
+        <div class="tag-wrap" id="tadreej-tags">
+          ${tadInfo.map((t,i)=>`<span class="tag">${t.name} <span class="tx" onclick="removeTadreej('${prof}',${i})">×</span></span>`).join('')}
+        </div>
+        <div class="tag-add-row">
+          <input type="text" id="tadreej-inp" placeholder="اسم التدرج...">
+          <button class="btn btn-green btn-sm" onclick="addTadreej('${prof}')">➕</button>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-hdr">تفاصيل التدرج</div>
+      <div class="card-body">
+        <div class="fg" style="max-width:220px;margin-bottom:14px">
+          <label>اختر التدرج</label>
+          <select id="tadreejDetailSel" onchange="buildTadreejDetail('${prof}',this.value)">
+            <option value="">-- اختر --</option>
+            ${tadInfo.map(t=>`<option>${t.name}</option>`).join('')}
+          </select>
+        </div>
+        <div id="tadreejDetail"></div>
+      </div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:14px">
+    <div class="card-hdr">الاختصاصات العامة للمهنة (بدون تدرج)</div>
+    <div class="card-body">
+      <div class="tag-wrap" id="prof-specs-tags">
+        ${(CFG.profSpecs?.[prof]||[]).map(s=>`<span class="tag">${s} <span class="tx" onclick="removeProfSpec('${prof}','${s.replace(/'/g,"\\'")}')">×</span></span>`).join('')}
+      </div>
+      <div class="tag-add-row">
+        <input type="text" id="prof-spec-inp" placeholder="اختصاص...">
+        <button class="btn btn-green btn-sm" onclick="addProfSpec('${prof}')">➕</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// buildTadreejDetail replaced below
+
+function addTadreej(prof){
+  const inp=document.getElementById('tadreej-inp');
+  const v=inp.value.trim(); if(!v) return;
+  if(!CFG.profTadreej[prof]) CFG.profTadreej[prof]=[];
+  if(CFG.profTadreej[prof].find(t=>t.name===v)){ toast('موجود مسبقاً',true); return; }
+  CFG.profTadreej[prof].push({name:v,specs:[],titles:{}});
+  inp.value=''; saveCFG(); buildSettings();
+}
+function removeTadreej(prof,idx){
+  CFG.profTadreej[prof].splice(idx,1); saveCFG(); buildSettings();
+}
+function addTadSpec(prof,tad){
+  const inp=document.getElementById('tad-spec-inp');
+  const v=inp.value.trim(); if(!v) return;
+  const t=CFG.profTadreej[prof].find(x=>x.name===tad); if(!t) return;
+  if(!t.specs) t.specs=[];
+  if(!t.specs.includes(v)) t.specs.push(v);
+  inp.value=''; saveCFG(); buildTadreejDetail(prof,tad);
+}
+function removeTadSpec(prof,tad,spec){
+  const t=CFG.profTadreej[prof].find(x=>x.name===tad); if(!t) return;
+  t.specs=t.specs.filter(s=>s!==spec); saveCFG(); buildTadreejDetail(prof,tad);
+}
+function addTadTitle(prof,tad,deg){
+  const inp=document.getElementById(`tad-title-inp-${deg}`);
+  const v=inp.value.trim(); if(!v) return;
+  const t=CFG.profTadreej[prof].find(x=>x.name===tad); if(!t) return;
+  if(!t.titles) t.titles={};
+  if(!t.titles[deg]) t.titles[deg]=[];
+  if(!t.titles[deg].includes(v)) t.titles[deg].push(v);
+  inp.value=''; saveCFG(); buildTadreejDetail(prof,tad);
+}
+function removeTadTitle(prof,tad,deg,title){
+  const t=CFG.profTadreej[prof].find(x=>x.name===tad); if(!t) return;
+  t.titles[deg]=(t.titles[deg]||[]).filter(x=>x!==title); saveCFG(); buildTadreejDetail(prof,tad);
+}
+function addProfSpec(prof){
+  const inp=document.getElementById('prof-spec-inp');
+  const v=inp.value.trim(); if(!v) return;
+  if(!CFG.profSpecs) CFG.profSpecs={};
+  if(!CFG.profSpecs[prof]) CFG.profSpecs[prof]=[];
+  if(!CFG.profSpecs[prof].includes(v)) CFG.profSpecs[prof].push(v);
+  inp.value=''; saveCFG(); buildSettings();
+}
+function removeProfSpec(prof,spec){
+  if(CFG.profSpecs?.[prof]) CFG.profSpecs[prof]=CFG.profSpecs[prof].filter(s=>s!==spec);
+  saveCFG(); buildSettings();
+}
+
+// ============================================================
+//  UNITS
+// ============================================================
+function buildUnits(){
+  const el=document.getElementById('unitsList'); if(!el) return;
+  el.innerHTML=CFG.units.map((u,i)=>`
+    <div class="drag-item">
+      <span class="drag-handle">⠿</span>
+      <span style="flex:1">${u}</span>
+      <button class="btn btn-red btn-xs" onclick="removeUnit(${i})">✕</button>
+    </div>`).join('');
+}
+function addUnit(){
+  const v=prompt('اسم الوحدة:'); if(!v) return;
+  CFG.units.push(v.trim()); saveCFG(); buildUnits();
+  // refresh يعمل في selects
+  Object.keys(PROF_PAGES).forEach(ctx=>{ Page_STATE?.[ctx]; });
+  toast('✅ تمت الإضافة');
+}
+function removeUnit(i){
+  CFG.units.splice(i,1); saveCFG(); buildUnits();
+}
+
+// ============================================================
+//  COL CONFIG
+// ============================================================
+const ALL_COLS=['الاسم الرباعي','الرقم الوظيفي','المهنه','التدرج','الاختصاص','العنوان الوظيفي','حالة الموظف','الملاحظات','الدرجة','المرحلة','يعمل في','تاريخ التولد','تاريخ التعيين','الجنس','تاريخ تعديل البيانات'];
+const ALL_FILTERS=['الاسم الرباعي','اسم الام الثلاثي','المهنه','التدرج','الاختصاص','تاريخ التولد','تاريخ التعيين','حالة الموظف','الدرجة','العنوان الوظيفي','يعمل في','الجنس'];
+
+function buildColConfig(){
+  const tl=document.getElementById('colsTableList');
+  const fl=document.getElementById('colsFilterList');
+  if(!tl||!fl) return;
+  
+  tl.innerHTML=ALL_COLS.map(c=>`
+    <div class="drag-item" data-col="${c}">
+      <span class="drag-handle">⠿</span>
+      <input type="checkbox" ${CFG.tableCols.includes(c)?'checked':''} onchange="colCheck(this,'table','${c}')"> 
+      <span>${c}</span>
+    </div>`).join('');
+  
+  fl.innerHTML=ALL_FILTERS.map(c=>`
+    <div class="drag-item" data-col="${c}">
+      <span class="drag-handle">⠿</span>
+      <input type="checkbox" ${CFG.filterFields.includes(c)?'checked':''} onchange="colCheck(this,'filter','${c}')">
+      <span>${c}</span>
+    </div>`).join('');
+}
+function colCheck(cb,type,col){
+  if(type==='table'){
+    if(cb.checked&&!CFG.tableCols.includes(col)) CFG.tableCols.push(col);
+    else CFG.tableCols=CFG.tableCols.filter(c=>c!==col);
+  } else {
+    if(cb.checked&&!CFG.filterFields.includes(col)) CFG.filterFields.push(col);
+    else CFG.filterFields=CFG.filterFields.filter(c=>c!==col);
+  }
+}
+function saveColConfig(){
+  saveCFG();
+  // Rebuild all tables
+  Object.keys(PROF_PAGES).forEach(ctx=>{ buildFilters(ctx,PROF_PAGES[ctx].prof,PROF_PAGES[ctx].isInactive); renderTable(ctx); });
+  toast('✅ تم حفظ التخصيص');
+}
+function resetColConfig(){
+  CFG.tableCols=[...DEFAULT_COLS]; CFG.filterFields=[...DEFAULT_FILTERS];
+  saveCFG(); buildColConfig();
+  toast('✅ تمت إعادة التعيين');
+}
+
+// ============================================================
+//  RECENT
+// ============================================================
+function buildRecent(){
+  const recent=DB.records.filter(r=>r._modified||r._created)
+    .sort((a,b)=>(b._modified||b._created||'').localeCompare(a._modified||a._created||''))
+    .slice(0,100);
+  const tbody=document.getElementById('tb-recent'); if(!tbody) return;
+  tbody.innerHTML=recent.map(r=>`<tr>
+    <td>${r['الاسم الرباعي']||''}</td>
+    <td>${profBdg(r['المهنه']||'')}</td>
+    <td>${statusBdg(r['حالة الموظف']||'')}</td>
+    <td>${r._modified||r._created||''}</td>
+    <td><button class="btn btn-blue btn-xs" onclick="viewRec(${r._id},'all')">👁</button></td>
+  </tr>`).join('');
+}
+
+// ============================================================
+//  DB SUMMARY
+// ============================================================
+function buildDbSum(){
+  const active=DB.records.filter(r=>r._active==='1');
+  const inactive=DB.records.filter(r=>r._active==='0');
+  const profC={};
+  active.forEach(r=>{const p=r['المهنه']||'?';profC[p]=(profC[p]||0)+1;});
+  document.getElementById('dbSum').innerHTML=`
+    <div class="sg" style="margin-bottom:0">
+      <div class="sc blue"><div class="sc-lbl">إجمالي</div><div class="sc-val">${DB.records.length}</div></div>
+      <div class="sc green"><div class="sc-lbl">فعليون</div><div class="sc-val">${active.length}</div></div>
+      <div class="sc red"><div class="sc-lbl">مغادرون</div><div class="sc-val">${inactive.length}</div></div>
+      ${DB.professions.map(p=>`<div class="sc" style="border-color:${PROF_CLR[p]||'#3b82f6'}">
+        <div class="sc-lbl">${PROF_ICO[p]||'👤'} ${p}</div>
+        <div class="sc-val">${profC[p]||0}</div>
+      </div>`).join('')}
+    </div>`;
+}
+
+// ============================================================
+//  MISC
+// ============================================================
+function refreshAll(){
+  buildNav(); buildDash(); buildStats(); buildDbSum(); buildRecent();
+  Object.keys(PROF_PAGES).forEach(ctx=>{ buildFilters(ctx,PROF_PAGES[ctx].prof,PROF_PAGES[ctx].isInactive); renderTable(ctx); });
+}
+function saveCFG(){ localStorage.setItem('hmsCFG',JSON.stringify(CFG)); }
+function toast(msg,err){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast'+(err?' err':'')+' show';
+  setTimeout(()=>t.classList.remove('show'),3500);
+}
+
+function buildSettingsPage(){
+  const sel=document.getElementById('settingsProfSel');
+  if(sel&&sel.options.length<=1){
+    DB.professions.forEach(p=>appendOpt('settingsProfSel',p));
+  }
+}
+
+// init handled by DOMContentLoaded below
+
+// ============================================================
+//  COMBOBOX (searchable multi-select)
+// ============================================================
+function buildCombo(ctx, field, opts, idSuffix){
+  const key=(idSuffix||field.replace(/\s/g,'_'));
+  const id=`cb-${ctx}-${key}`;
+  return `<div class="fg cb-wrap" style="min-width:130px;flex:1" id="cbw-${id}">
+    <label>${field}</label>
+    <input type="text" class="cb-input" id="${id}-inp" placeholder="${field}..."
+      oninput="filterCombo('${id}')" onfocus="openCombo('${id}')" autocomplete="off">
+    <div class="cb-dd" id="${id}-dd">
+      ${opts.map(o=>`<label class="cb-opt"><input type="checkbox" value="${o}" onchange="comboChange('${ctx}','${field}','${id}')"> ${o}</label>`).join('')}
+    </div>
+  </div>`;
+}
+
+function openCombo(id){
+  document.getElementById(id+'-dd').classList.add('open');
+  document.addEventListener('click',function closer(e){
+    const wrap=document.getElementById('cbw-'+id);
+    if(!wrap||!wrap.contains(e.target)){
+      document.getElementById(id+'-dd')?.classList.remove('open');
+      document.removeEventListener('click',closer);
+    }
+  });
+}
+
+function filterCombo(id){
+  const q=document.getElementById(id+'-inp').value.toLowerCase();
+  const dd=document.getElementById(id+'-dd');
+  dd.querySelectorAll('.cb-opt').forEach(opt=>{
+    opt.style.display=opt.textContent.toLowerCase().includes(q)?'':'none';
+  });
+  dd.classList.add('open');
+}
+
+function comboChange(ctx,field,id){
+  const dd=document.getElementById(id+'-dd');
+  const checked=[...dd.querySelectorAll('input:checked')].map(i=>i.value);
+  const st=pst(ctx);
+  if(!st.msel) st.msel={};
+  st.msel[field]=checked;
+  const inp=document.getElementById(id+'-inp');
+  inp.value=checked.length?checked.join('، '):'';
+  st.page=1; renderTable(ctx);
+}
+
+// Override buildFilters — spec options linked to selected profession
+const _origBuildFilters = buildFilters;
+buildFilters = function(ctx, prof, isInactive){
+  const el=document.getElementById('fp-'+ctx);
+  if(!el) return;
+  const srcData=getSource(ctx);
+  const fields=CFG.filterFields.filter(f=>f!=='الاسم الرباعي');
+
+  // Get spec options — if prof page use only that prof's specs, else all
+  function getSpecOpts(currentProfFilter){
+    if(currentProfFilter){
+      // specs from CFG for this prof
+      const tadInfo=CFG.profTadreej[currentProfFilter]||[];
+      const cfgSpecs=[...new Set(tadInfo.flatMap(t=>t.specs||[]))];
+      const dbSpecs=getUniq(srcData,'الاختصاص');
+      return cfgSpecs.length ? cfgSpecs : dbSpecs;
+    }
+    return getUniq(srcData,'الاختصاص');
+  }
+
+  const filtersHtml=fields.map(f=>{
+    if(MULTI_FIELDS.includes(f)){
+      // For الاختصاص on non-prof pages, build a dynamic combo that refreshes when مهنه changes
+      if(f==='الاختصاص' && !prof){
+        const opts=getUniq(srcData,f);
+        return buildCombo(ctx,f,opts,'spec');
+      }
+      if(f==='الاختصاص' && prof){
+        const opts=getSpecOpts(prof);
+        return buildCombo(ctx,f,opts,'spec');
+      }
+      const opts=getUniq(srcData,f);
+      return buildCombo(ctx,f,opts);
+    }
+    return `<div class="fg" style="min-width:130px;flex:1">
+      <label>${f}</label>
+      <input type="text" placeholder="${f}..." oninput="setF('${ctx}','${f}',this.value)">
+    </div>`;
+  }).join('');
+  
+  el.innerHTML=`
+    <div class="fp-top">
+      <div class="fg" style="flex:2;min-width:180px">
+        <label>🔍 بحث بالاسم</label>
+        <input type="text" placeholder="ابحث بالاسم..." oninput="setSearch('${ctx}',this.value)" id="srch-${ctx}">
+      </div>
+      <div class="fp-count">النتائج: <b id="fc-${ctx}">0</b></div>
+      <button class="btn btn-ghost btn-sm" onclick="resetF('${ctx}')">🔄 إعادة تعيين</button>
+    </div>
+    <div class="fp-row">${filtersHtml}</div>`;
+
+  // On non-prof pages: when مهنه filter changes, refresh الاختصاص options
+  if(!prof){
+    const profKey='المهنه'.replace(/\s/g,'_');
+    const profCbId=`cb-${ctx}-${profKey}`;
+    const profDd=document.getElementById(profCbId+'-dd');
+    if(profDd){
+      profDd.querySelectorAll('input[type=checkbox]').forEach(cb=>{
+        cb.addEventListener('change',()=>{
+          // get selected profs
+          const selProfs=[...profDd.querySelectorAll('input:checked')].map(i=>i.value);
+          const specOpts = selProfs.length===1
+            ? getSpecOpts(selProfs[0])
+            : getUniq(srcData,'الاختصاص');
+          const specKey='الاختصاص'.replace(/\s/g,'_');
+          const specDd=document.getElementById(`cb-${ctx}-${specKey}-dd`);
+          if(specDd){
+            const prevChecked=[...specDd.querySelectorAll('input:checked')].map(i=>i.value);
+            specDd.innerHTML=specOpts.map(o=>`<label class="cb-opt"><input type="checkbox" value="${o}" ${prevChecked.includes(o)?'checked':''} onchange="comboChange('${ctx}','الاختصاص','cb-${ctx}-${specKey}')"> ${o}</label>`).join('');
+          }
+        });
+      });
+    }
+  }
+};
+
+// ============================================================
+//  BULK EDIT — independent fields, auto title from deg+spec
+// ============================================================
+let bulkCtx = null;
+function openBulkEdit(ctx){
+  const ids=getSelected(ctx);
+  if(!ids.length){ toast('لم تحدد أي سجل',true); return; }
+  bulkCtx=ctx;
+  
+  // Populate all selects independently — no linking
+  const allProfs=DB.professions;
+  const allTadreej=[...new Set(Object.values(CFG.profTadreej).flatMap(ts=>ts.map(t=>t.name)))];
+  const allSpecs=[...new Set(Object.values(CFG.profTadreej).flatMap(ts=>ts.flatMap(t=>t.specs||[])))];
+  const allTitles=[...new Set(Object.values(CFG.profTadreej).flatMap(ts=>ts.flatMap(t=>Object.values(t.titles||{}).flat())))];
+
+  document.getElementById('bulk-prof').innerHTML='<option value="">-- لا تغيير --</option>'+allProfs.map(p=>`<option>${p}</option>`).join('');
+  document.getElementById('bulk-tadreej').innerHTML='<option value="">-- لا تغيير --</option>'+allTadreej.map(t=>`<option>${t}</option>`).join('');
+  document.getElementById('bulk-spec').innerHTML='<option value="">-- لا تغيير --</option>'+allSpecs.map(s=>`<option>${s}</option>`).join('');
+  document.getElementById('bulk-title').innerHTML='<option value="">-- لا تغيير --</option>'+allTitles.map(t=>`<option>${t}</option>`).join('');
+  document.getElementById('bulk-unit').innerHTML='<option value="">-- لا تغيير --</option>'+CFG.units.map(u=>`<option>${u}</option>`).join('');
+  document.getElementById('bulk-deg').value='';
+  document.getElementById('bulkPreview').textContent=`سيتم تعديل ${ids.length} سجل`;
+  document.getElementById('bulkOv').classList.add('open');
+}
+
+// Auto-fill العنوان الوظيفي when درجة changes (based on current spec+tadreej selection)
+function bulkDegChange(){
+  const deg=document.getElementById('bulk-deg').value.trim();
+  const tad=document.getElementById('bulk-tadreej').value;
+  const spec=document.getElementById('bulk-spec').value;
+  const prof=document.getElementById('bulk-prof').value;
+  if(!deg||!tad) return;
+  // Find matching titles for selected prof+tadreej+degree
+  const profs=prof?[prof]:DB.professions;
+  for(const p of profs){
+    const tadInfo=CFG.profTadreej[p]||[];
+    const tadObj=tadInfo.find(t=>t.name===tad);
+    if(tadObj&&tadObj.titles&&tadObj.titles[deg]&&tadObj.titles[deg].length){
+      document.getElementById('bulk-title').value=tadObj.titles[deg][0];
+      return;
+    }
+  }
+}
+
+function applyBulk(){
+  const ids=getSelected(bulkCtx);
+  if(!ids.length){ toast('لا توجد عناصر محددة',true); return; }
+  const fields={
+    'المهنه': document.getElementById('bulk-prof').value,
+    'التدرج': document.getElementById('bulk-tadreej').value,
+    'الاختصاص': document.getElementById('bulk-spec').value,
+    'العنوان الوظيفي': document.getElementById('bulk-title').value,
+    'الدرجة': document.getElementById('bulk-deg').value,
+    'يعمل في': document.getElementById('bulk-unit').value,
+  };
+  const now=new Date().toLocaleString('ar-IQ');
+  let count=0;
+  DB.records.forEach(r=>{
+    if(!ids.includes(r._id)) return;
+    Object.entries(fields).forEach(([k,v])=>{ if(v!=='') r[k]=v; });
+    r._modified=now; r['تاريخ تعديل البيانات']=now;
+    count++;
+  });
+  document.getElementById('bulkOv').classList.remove('open');
+  refreshAll(); toast(`✅ تم تعديل ${count} سجل`);
+}
+
+// ============================================================
+//  DELEGATES
+// ============================================================
+function buildDelegatesPage(){
+  const del=CFG.delegates||[];
+  document.getElementById('cntDelegates').textContent=del.length;
+  const tbody=document.getElementById('delegatesTbl'); if(!tbody) return;
+  tbody.innerHTML=del.length?del.map((d,i)=>`<tr>
+    <td>${d.name||''}</td><td>${d.title||''}</td>
+    <td>${d.from||''}</td><td>${d.notes||''}</td>
+    <td>
+      <button class="btn btn-blue btn-xs" onclick="editDelegate(${i})">✏️</button>
+      <button class="btn btn-red btn-xs" onclick="removeDelegate(${i})">🗑</button>
+    </td>
+  </tr>`).join(''):'<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--muted)">لا يوجد منسبون</td></tr>';
+}
+
+let editDelIdx=null;
+function openAddDelegate(){
+  editDelIdx=null;
+  ['del-name','del-title','del-from','del-notes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('delegateTitle').textContent='إضافة منسب إلينا';
+  document.getElementById('delegateOv').classList.add('open');
+}
+function editDelegate(i){
+  editDelIdx=i;
+  const d=(CFG.delegates||[])[i];
+  document.getElementById('del-name').value=d.name||'';
+  document.getElementById('del-title').value=d.title||'';
+  document.getElementById('del-from').value=d.from||'';
+  document.getElementById('del-notes').value=d.notes||'';
+  document.getElementById('delegateTitle').textContent='تعديل بيانات المنسب';
+  document.getElementById('delegateOv').classList.add('open');
+}
+function saveDelegate(){
+  const d={
+    name:document.getElementById('del-name').value.trim(),
+    title:document.getElementById('del-title').value.trim(),
+    from:document.getElementById('del-from').value.trim(),
+    notes:document.getElementById('del-notes').value.trim(),
+  };
+  if(!d.name){ toast('الاسم مطلوب',true); return; }
+  if(!CFG.delegates) CFG.delegates=[];
+  if(editDelIdx!==null) CFG.delegates[editDelIdx]=d;
+  else CFG.delegates.push(d);
+  saveCFG(); document.getElementById('delegateOv').classList.remove('open');
+  buildDelegatesPage(); toast('✅ تم الحفظ');
+}
+function removeDelegate(i){
+  if(!confirm('حذف هذا المنسب؟')) return;
+  CFG.delegates.splice(i,1); saveCFG(); buildDelegatesPage();
+}
+
+// ============================================================
+//  UNITS PAGE — show employees per unit
+// ============================================================
+function buildUnitsPage(){
+  const el=document.getElementById('unitsList'); if(!el) return;
+  el.innerHTML=CFG.units.map((u,i)=>{
+    const emps=DB.records.filter(r=>r._active==='1'&&r['يعمل في']===u);
+    return `<div style="margin-bottom:12px">
+      <div class="drag-item" style="cursor:default;justify-content:space-between">
+        <span style="font-weight:700;font-size:14px">🏨 ${u}</span>
+        <div style="display:flex;gap:6px;align-items:center">
+          <span class="bdg bdg-blue">${emps.length} موظف</span>
+          <button class="btn btn-ghost btn-xs" onclick="toggleUnitList('ul-${i}')">تفاصيل ▾</button>
+          <button class="btn btn-red btn-xs" onclick="removeUnit(${i})">✕</button>
+        </div>
+      </div>
+      <div id="ul-${i}" style="display:none;margin-top:6px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
+        <table style="width:100%;font-size:12px;border-collapse:collapse">
+          <thead><tr>
+            <th style="background:var(--navy);color:#fff;padding:7px 10px;text-align:right">الاسم</th>
+            <th style="background:var(--navy);color:#fff;padding:7px 10px;text-align:right">المهنة</th>
+            <th style="background:var(--navy);color:#fff;padding:7px 10px;text-align:right">الحالة</th>
+            <th style="background:var(--navy);color:#fff;padding:7px 10px;text-align:right">العنوان الوظيفي</th>
+          </tr></thead>
+          <tbody>
+          ${emps.length?emps.map(r=>`<tr>
+            <td style="padding:6px 10px;border-bottom:1px solid var(--border)">${r['الاسم الرباعي']||''}</td>
+            <td style="padding:6px 10px;border-bottom:1px solid var(--border)">${r['المهنه']||''}</td>
+            <td style="padding:6px 10px;border-bottom:1px solid var(--border)">${statusBdg(r['حالة الموظف']||'')}</td>
+            <td style="padding:6px 10px;border-bottom:1px solid var(--border)">${r['العنوان الوظيفي']||''}</td>
+          </tr>`).join(''):'<tr><td colspan="4" style="padding:16px;text-align:center;color:var(--muted)">لا يوجد موظفون في هذه الوحدة</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+  }).join('');
+  if(!CFG.units.length) el.innerHTML='<div style="text-align:center;padding:30px;color:var(--muted)">لا توجد وحدات — أضف وحدة جديدة</div>';
+}
+
+function toggleUnitList(id){
+  const el=document.getElementById(id);
+  if(el) el.style.display=el.style.display==='none'?'block':'none';
+}
+
+// ============================================================
+//  STATS — by prof > tadreej > spec, quota per spec
+// ============================================================
+function buildStats(){
+  const profFilter=document.getElementById('statsProfSel')?.value||'';
+  const tadreejFilter=document.getElementById('statsTadreejSel')?.value||'';
+  const profs=profFilter?[profFilter]:DB.professions;
+  const active=DB.records.filter(r=>r._active==='1');
+  let html='';
+
+  profs.forEach(prof=>{
+    const clr=PROF_CLR[prof]||'#2563ab';
+    const tadInfo=CFG.profTadreej[prof]||[];
+    const hasTadreej=tadInfo.length>0;
+    const profRecs=active.filter(r=>r['المهنه']===prof);
+    const totalAll=profRecs.length;
+    const workingAll=profRecs.filter(r=>(r['حالة الموظف']||'').includes('مستمر')).length;
+    const leaveAll=profRecs.filter(r=>{const s=r['حالة الموظف']||'';return s.includes('اجازة')||s.includes('اجازه');}).length;
+    const delAll=profRecs.filter(r=>(r['حالة الموظف']||'').includes('منسب')).length;
+
+    html+=`<div class="stats-box">
+      <div class="sbox-hdr" style="background:${clr}15;border-bottom:2px solid ${clr}">
+        <span style="color:${clr};font-size:15px;font-weight:900">${PROF_ICO[prof]||'👤'} ${prof}</span>
+        <span style="font-size:12px;color:var(--muted)">الكلي: ${totalAll} | مستمر: ${workingAll} | إجازة: ${leaveAll} | منسب: ${delAll}</span>
+      </div>`;
+
+    // Group by tadreej (or "all" if no tadreej)
+    const tadGroups = hasTadreej
+      ? tadInfo.filter(t=>!tadreejFilter||t.name===tadreejFilter)
+      : [{name:null, specs:null}];
+
+    tadGroups.forEach(tad=>{
+      const tadRecs = tad.name ? profRecs.filter(r=>r['التدرج']===tad.name) : profRecs;
+      if(tad.name && !tadRecs.length) return;
+
+      // group by spec
+      const specMap={};
+      tadRecs.forEach(r=>{
+        const sp=r['الاختصاص']||'غير محدد';
+        if(!specMap[sp]) specMap[sp]={total:0,working:0,leave:0,del:0};
+        specMap[sp].total++;
+        const s=r['حالة الموظف']||'';
+        if(s.includes('مستمر')) specMap[sp].working++;
+        else if(s.includes('اجازة')||s.includes('اجازه')) specMap[sp].leave++;
+        else if(s.includes('منسب')) specMap[sp].del++;
+      });
+
+      const tadTotal=tadRecs.length;
+      const tadWorking=tadRecs.filter(r=>(r['حالة الموظف']||'').includes('مستمر')).length;
+
+      if(tad.name){
+        html+=`<div style="padding:8px 14px;font-weight:800;font-size:13px;background:#f4f7ff;border-top:1px solid ${clr}30;color:${clr}">
+          ↳ ${tad.name} &nbsp;<span style="font-weight:400;color:var(--muted);font-size:11px">(${tadTotal} موظف / ${tadWorking} مستمر)</span>
+        </div>`;
+      }
+
+      html+=`<div class="srow" style="grid-template-columns:2.5fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr">
+        <div class="scell h" style="text-align:right">الاختصاص</div>
+        <div class="scell h">الكلي</div><div class="scell h">مستمر</div>
+        <div class="scell h">إجازة</div><div class="scell h">منسب</div>
+        <div class="scell h">القياسي</div><div class="scell h">فائض</div><div class="scell h">احتياج</div>
+      </div>`;
+
+      Object.entries(specMap).sort((a,b)=>b[1].total-a[1].total).forEach(([sp,d])=>{
+        const qKey=tad.name?`${prof}_${tad.name}_${sp}`:`spec_${sp}`;
+        const q=CFG.quotas[qKey]||0;
+        const surplus=q?Math.max(0,d.working-q):0;
+        const need=q?Math.max(0,q-d.working):0;
+        html+=`<div class="srow" style="grid-template-columns:2.5fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr">
+          <div class="scell" style="text-align:right;font-weight:600">${sp}</div>
+          <div class="scell bl">${d.total}</div>
+          <div class="scell gr">${d.working}</div>
+          <div class="scell am">${d.leave}</div>
+          <div class="scell am">${d.del}</div>
+          <div class="scell"><input type="number" value="${q}" min="0"
+            style="width:54px;padding:3px 5px;border:1px solid var(--border);border-radius:5px;font-size:11px;text-align:center;font-family:var(--fnt)"
+            onchange="setQuota('${qKey.replace(/'/g,'')}',this.value)"></div>
+          <div class="scell ${surplus>0?'gr':''}">${surplus||'—'}</div>
+          <div class="scell ${need>0?'rd':''}">${need||'—'}</div>
+        </div>`;
+      });
+    });
+
+    html+='</div>';
+  });
+
+  document.getElementById('statsContent').innerHTML=html||'<p style="color:var(--muted);padding:20px">لا توجد بيانات</p>';
+}
+
+// Update stats selects when prof changes
+function onStatsProfChange(){
+  const prof=document.getElementById('statsProfSel').value;
+  const tadSel=document.getElementById('statsTadreejSel');
+  tadSel.innerHTML='<option value="">كل التدرجات</option>';
+  if(prof){
+    (CFG.profTadreej[prof]||[]).forEach(t=>{ const o=document.createElement('option'); o.value=t.name; o.textContent=t.name; tadSel.appendChild(o); });
+  } else {
+    const allTad=[...new Set(Object.values(CFG.profTadreej).flatMap(ts=>ts.map(t=>t.name)))];
+    allTad.forEach(t=>{ const o=document.createElement('option'); o.value=t; o.textContent=t; tadSel.appendChild(o); });
+  }
+  buildStats();
+}
+
+function exportStats(){
+  const profFilter=document.getElementById('statsProfSel')?.value||'';
+  const tadreejFilter=document.getElementById('statsTadreejSel')?.value||'';
+  const profs=profFilter?[profFilter]:DB.professions;
+  const active=DB.records.filter(r=>r._active==='1');
+  const rows=[];
+
+  profs.forEach(prof=>{
+    const tadInfo=CFG.profTadreej[prof]||[];
+    const hasTadreej=tadInfo.length>0;
+    const profRecs=active.filter(r=>r['المهنه']===prof);
+    const tadGroups=hasTadreej
+      ? tadInfo.filter(t=>!tadreejFilter||t.name===tadreejFilter)
+      : [{name:null}];
+
+    tadGroups.forEach(tad=>{
+      const tadRecs=tad.name?profRecs.filter(r=>r['التدرج']===tad.name):profRecs;
+      const specMap={};
+      tadRecs.forEach(r=>{
+        const sp=r['الاختصاص']||'غير محدد';
+        if(!specMap[sp]) specMap[sp]={total:0,working:0,leave:0,del:0};
+        specMap[sp].total++;
+        const s=r['حالة الموظف']||'';
+        if(s.includes('مستمر')) specMap[sp].working++;
+        else if(s.includes('اجازة')||s.includes('اجازه')) specMap[sp].leave++;
+        else if(s.includes('منسب')) specMap[sp].del++;
+      });
+      Object.entries(specMap).sort((a,b)=>b[1].total-a[1].total).forEach(([sp,d])=>{
+        const qKey=tad.name?`${prof}_${tad.name}_${sp}`:`spec_${sp}`;
+        const q=CFG.quotas[qKey]||0;
+        rows.push({
+          'المهنة':prof,
+          'التدرج':tad.name||'—',
+          'الاختصاص':sp,
+          'الإجمالي':d.total,
+          'مستمر':d.working,
+          'إجازة':d.leave,
+          'منسب':d.del,
+          'القياسي':q||'',
+          'الفائض':q?Math.max(0,d.working-q)||'':'',
+          'الاحتياج':q?Math.max(0,q-d.working)||'':'',
+        });
+      });
+    });
+  });
+
+  if(!rows.length){ toast('لا توجد بيانات للتصدير',true); return; }
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.json_to_sheet(rows);
+  XLSX.utils.book_append_sheet(wb,ws,'الإحصائيات');
+  XLSX.writeFile(wb,'إحصائيات_'+dateStr()+'.xlsx');
+  toast('✅ تم تصدير الإحصائيات كاملة');
+}
+
+// ============================================================
+//  OVERRIDE buildUnits to use new version
+// ============================================================
+buildUnits = buildUnitsPage;
+
+// ============================================================
+//  ADD BULK EDIT BUTTON TO TABLE TOOLBARS
+// ============================================================
+const _origBuildPage = buildPage;
+buildPage = function(ctx, prof, isInactive){
+  _origBuildPage(ctx, prof, isInactive);
+  // Add bulk edit button to card-hdr-left if exists
+  const hdrLeft = document.querySelector(`#pg-${ctx} .card-hdr-left`);
+  if(hdrLeft && !hdrLeft.querySelector('.bulk-edit-btn')){
+    const btn = document.createElement('button');
+    btn.className='btn btn-navy btn-sm bulk-edit-btn';
+    btn.textContent='✏️ تعديل جماعي';
+    btn.onclick=()=>openBulkEdit(ctx);
+    hdrLeft.insertBefore(btn, hdrLeft.firstChild);
+  }
+};
+
+// ============================================================
+//  OVERRIDE ALL_COLS to include ALL DB columns
+// ============================================================
+// Will be populated after DB loads
+function getAllDbCols(){
+  if(DB.columns.length) return DB.columns;
+  if(DB.records.length) return Object.keys(DB.records[0]).filter(k=>!k.startsWith('_'));
+  return DEFAULT_COLS;
+}
+
+// ============================================================
+//  OVERRIDE buildColConfig to show ALL columns
+// ============================================================
+buildColConfig = function(){
+  const tl=document.getElementById('colsTableList');
+  const fl=document.getElementById('colsFilterList');
+  if(!tl||!fl) return;
+  const allCols=getAllDbCols();
+  
+  tl.innerHTML=allCols.map(c=>`
+    <div class="drag-item" data-col="${c}">
+      <span class="drag-handle">⠿</span>
+      <input type="checkbox" ${CFG.tableCols.includes(c)?'checked':''} onchange="colCheck(this,'table','${c}')">
+      <span style="font-size:13px">${c}</span>
+    </div>`).join('');
+  
+  fl.innerHTML=allCols.map(c=>`
+    <div class="drag-item" data-col="${c}">
+      <span class="drag-handle">⠿</span>
+      <input type="checkbox" ${CFG.filterFields.includes(c)?'checked':''} onchange="colCheck(this,'filter','${c}')">
+      <span style="font-size:13px">${c}</span>
+    </div>`).join('');
+};
+
+// ============================================================
+//  PATCH buildForm: move رقم الوظيفي to top
+// ============================================================
+const _origBuildForm = buildForm;
+buildForm = function(rec, defaultProf){
+  const html = _origBuildForm(rec, defaultProf);
+  return html; // رقم الوظيفي already in top section
+};
+
+// ============================================================
+//  INIT PATCH — rebuild after data loads
+// ============================================================
+const _origInit = init;
+init = async function(){
+  await _origInit();
+  mergeDbIntoSettings();
+  buildDelegatesPage();
+  buildUnitsPage();
+  // Rebuild col config with actual DB cols
+  setTimeout(buildColConfig, 500);
+  // Add bulk edit buttons to existing pages
+  Object.keys(PROF_PAGES).forEach(ctx=>{
+    const hdrLeft=document.querySelector(`#pg-${ctx} .card-hdr-left`);
+    if(hdrLeft&&!hdrLeft.querySelector('.bulk-edit-btn')){
+      const btn=document.createElement('button');
+      btn.className='btn btn-navy btn-sm bulk-edit-btn';
+      btn.innerHTML='✏️ تعديل جماعي';
+      btn.onclick=()=>openBulkEdit(ctx);
+      hdrLeft.insertBefore(btn,hdrLeft.firstChild);
+    }
+  });
+};
+
+// Call delegates and units after nav
+const _origNav = nav;
+nav = function(id, el){
+  _origNav(id, el);
+  if(id==='delegates') buildDelegatesPage();
+  if(id==='units') buildUnitsPage();
+  if(id==='cols') setTimeout(buildColConfig, 100);
+};
+
+
+// ============================================================
+//  SEARCHABLE-SELECT WIDGET
+// ============================================================
+// sselSingle: single-select searchable dropdown
+// sselMulti: multi-select with tags
+// Both replace <select> elements with a nicer UI
+
+function sselSingle(field, opts, cur, onChange=''){
+  const sid = 'ss_' + field.replace(/[^a-zA-Z0-9]/g,'_') + '_' + Math.random().toString(36).slice(2,6);
+  const sorted = [...opts].sort((a,b)=>a.localeCompare(b,'ar'));
+  return `
+  <div class="ssel-wrap" id="wrap_${sid}">
+    <input type="text" class="ssel-input" id="inp_${sid}" 
+      placeholder="اكتب أو اختر..." autocomplete="off"
+      value="${cur||''}"
+      onfocus="sselOpen('${sid}')"
+      oninput="sselFilter('${sid}')"
+      onblur="sselBlur('${sid}')">
+    <span class="ssel-arrow">▾</span>
+    <input type="hidden" class="ssel-hidden" data-field="${field}" id="val_${sid}" value="${cur||''}">
+    <div class="ssel-dd" id="dd_${sid}">
+      ${sorted.map(o=>`<div class="ssel-opt${cur===o?' selected':''}" 
+        onmousedown="sselPick('${sid}','${o.replace(/'/g,"\'")}'${onChange?`,${onChange}`:''})">${o}</div>`).join('')}
+    </div>
+  </div>`;
+}
+
+function sselOpen(sid){
+  const dd=document.getElementById('dd_'+sid);
+  if(dd) dd.classList.add('open');
+  // filter to show all
+  sselFilter(sid);
+}
+
+function sselBlur(sid){
+  setTimeout(()=>{
+    const dd=document.getElementById('dd_'+sid);
+    if(dd) dd.classList.remove('open');
+  },200);
+}
+
+function sselFilter(sid){
+  const inp=document.getElementById('inp_'+sid);
+  if(!inp) return;
+  const q=inp.value.toLowerCase().trim();
+  const dd=document.getElementById('dd_'+sid);
+  if(!dd) return;
+  dd.classList.add('open');
+  let any=false;
+  dd.querySelectorAll('.ssel-opt').forEach(opt=>{
+    const match=!q||opt.textContent.toLowerCase().includes(q);
+    opt.style.display=match?'':'none';
+    if(match) any=true;
+  });
+  // empty state
+  let em=dd.querySelector('.ssel-empty');
+  if(!any){
+    if(!em){ em=document.createElement('div'); em.className='ssel-empty'; em.textContent='لا توجد نتائج'; dd.appendChild(em); }
+    em.style.display='';
+  } else if(em) em.style.display='none';
+}
+
+function sselPick(sid, val, onChangeFn){
+  const inp=document.getElementById('inp_'+sid);
+  const hid=document.getElementById('val_'+sid);
+  const dd=document.getElementById('dd_'+sid);
+  if(inp) inp.value=val;
+  if(hid) hid.value=val;
+  if(dd){
+    dd.querySelectorAll('.ssel-opt').forEach(o=>o.classList.toggle('selected', o.textContent.trim()===val));
+    dd.classList.remove('open');
+  }
+  if(onChangeFn) try{ eval(onChangeFn+'("'+val+'")'); }catch(e){}
+}
+
+function sselGetVal(field){
+  const hid=document.querySelector(`input.ssel-hidden[data-field="${field}"]`);
+  return hid?hid.value:'';
+}
+
+// ============================================================
+// Update fSel to use sselSingle
+// ============================================================
+function fSel(field, opts, cur, onChangeFn){
+  return sselSingle(field, opts, cur, onChangeFn||'');
+}
+
+// ============================================================
+// Rebuild buildForm to use sselSingle for all selects
+// and auto-fill title when degree changes
+// ============================================================
+function buildForm(rec, defaultProf){
+  const prof=rec?rec['المهنه']:(defaultProf||'');
+  const tadInfo=CFG.profTadreej[prof]||[];
+  const tadreegs=tadInfo.map(t=>t.name);
+  // Specs from CFG + from DB records for this prof, sorted alphabetically
+  const cfgSpecs=[...new Set(tadInfo.flatMap(t=>t.specs||[]))];
+  const dbSpecs=DB.records.filter(r=>r['المهنه']===prof).map(r=>r['الاختصاص']||'').filter(Boolean);
+  const allSpecs=[...new Set([...cfgSpecs,...dbSpecs])].sort((a,b)=>a.localeCompare(b,'ar'));
+  const allTitles=[...new Set(tadInfo.flatMap(t=>Object.values(t.titles||{}).flat()))];
+  const allStatuses=DB.statuses.length?DB.statuses:[...new Set(DB.records.map(r=>r['حالة الموظف']||'').filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ar'));
+  // units from CFG + db
+  const dbUnits=[...new Set(DB.records.map(r=>r['يعمل في']||'').filter(Boolean))];
+  const allUnits=[...new Set([...CFG.units,...dbUnits])].sort((a,b)=>a.localeCompare(b,'ar'));
+  
+  return `
+  <div class="fsec"><h3>🏥 المعلومات الوظيفية</h3>
+  <div class="fgrid">
+    <div class="fgrp"><label>الرقم الوظيفي</label>${fIn('الرقم الوظيفي',fv(rec,'الرقم الوظيفي'))}</div>
+    <div class="fgrp"><label>المهنة</label>
+      ${sselSingle('المهنه', DB.professions, prof, 'onProfChangeNew')}
+    </div>
+    <div class="fgrp"><label>التدرج</label>
+      <div id="wrap-tadreej">${sselSingle('التدرج', tadreegs, fv(rec,'التدرج'), 'onTadreejChangeNew')}</div>
+    </div>
+    <div class="fgrp"><label>الاختصاص</label>
+      <div id="wrap-spec">${sselSingle('الاختصاص', allSpecs, fv(rec,'الاختصاص'))}</div>
+    </div>
+    <div class="fgrp"><label>الدرجة</label>
+      <input type="text" data-field="الدرجة" value="${fv(rec,'الدرجة')}" 
+        oninput="onDegreeChangeNew(this.value)" placeholder="رقم الدرجة...">
+    </div>
+    <div class="fgrp"><label>العنوان الوظيفي</label>
+      <div id="wrap-title">${sselSingle('العنوان الوظيفي', allTitles, fv(rec,'العنوان الوظيفي'))}</div>
+    </div>
+    <div class="fgrp"><label>المرحلة</label>${fIn('المرحلة',fv(rec,'المرحلة'))}</div>
+    <div class="fgrp"><label>حالة الموظف</label>
+      ${sselSingle('حالة الموظف', allStatuses, fv(rec,'حالة الموظف'))}
+    </div>
+    <div class="fgrp"><label>يعمل في</label>
+      ${sselSingle('يعمل في', allUnits, fv(rec,'يعمل في'))}
+    </div>
+    <div class="fgrp s2"><label>الملاحظات</label>${fIn('الملاحظات',fv(rec,'الملاحظات'))}</div>
+  </div></div>
+
+  <div class="fsec"><h3>👤 المعلومات الشخصية</h3>
+  <div class="fgrid">
+    <div class="fgrp s3"><label>الاسم الرباعي *</label>${fIn('الاسم الرباعي',fv(rec,'الاسم الرباعي'))}</div>
+    <div class="fgrp"><label>اللقب</label>${fIn('اللقب',fv(rec,'اللقب'))}</div>
+    <div class="fgrp"><label>الجنس</label>${sselSingle('الجنس',['ذكر','انثى'],fv(rec,'الجنس'))}</div>
+    <div class="fgrp"><label>تاريخ الولادة</label>${fIn('تاريخ التولد',fv(rec,'تاريخ التولد'))}</div>
+    <div class="fgrp"><label>الحالة الاجتماعية</label>${sselSingle('الحالة الاجتماعية',['أعزب','متزوج','مطلق','أرمل'],fv(rec,'الحالة الاجتماعية'))}</div>
+    <div class="fgrp"><label>اسم الأم الثلاثي</label>${fIn('اسم الام الثلاثي',fv(rec,'اسم الام الثلاثي'))}</div>
+    <div class="fgrp"><label>اسم الزوجة</label>${fIn('اسم الزوجة',fv(rec,'اسم الزوجة'))}</div>
+  </div></div>
+
+  <div class="fsec"><h3>📍 السكن</h3>
+  <div class="fgrid">
+    <div class="fgrp"><label>المحافظة</label>${fIn('المحافظة',fv(rec,'المحافظة'))}</div>
+    <div class="fgrp"><label>المدينة</label>${fIn('المدينة',fv(rec,'المدينة'))}</div>
+    <div class="fgrp"><label>المحلة</label>${fIn('محلة',fv(rec,'محلة'))}</div>
+    <div class="fgrp"><label>الدار</label>${fIn('دار',fv(rec,'دار'))}</div>
+    <div class="fgrp"><label>الزقاق</label>${fIn('زقاق',fv(rec,'زقاق'))}</div>
+    <div class="fgrp"><label>أقرب نقطة</label>${fIn('اقرب نقطة دالة',fv(rec,'اقرب نقطة دالة'))}</div>
+    <div class="fgrp"><label>مركز الشرطة</label>${fIn('مركز شرطة',fv(rec,'مركز شرطة'))}</div>
+  </div></div>
+
+  <div class="fsec"><h3>🪪 الوثائق</h3>
+  <div class="fgrid">
+    <div class="fgrp"><label>رقم البطاقة الموحدة</label>${fIn('رقم البطاقة الموحدة',fv(rec,'رقم البطاقة الموحدة'))}</div>
+    <div class="fgrp"><label>جهة إصدار البطاقة الموحدة</label>${fIn('جهة اصدار البطاقة الموحدة',fv(rec,'جهة اصدار البطاقة الموحدة'))}</div>
+    <div class="fgrp"><label>تاريخ إصدار البطاقة الموحدة</label>${fIn('تاريخ اصدار البطاقة الموحدة',fv(rec,'تاريخ اصدار البطاقة الموحدة'))}</div>
+    <div class="fgrp"><label>رقم هوية الأحوال</label>${fIn('رقم هوية الاحوال المدنية',fv(rec,'رقم هوية الاحوال المدنية'))}</div>
+    <div class="fgrp"><label>جهة إصدار هوية الأحوال</label>${fIn('جهة اصدار هوية الاحوال',fv(rec,'جهة اصدار هوية الاحوال'))}</div>
+    <div class="fgrp"><label>تاريخ إصدار هوية الأحوال</label>${fIn('تاريخ اصدار هوية الاحوال',fv(rec,'تاريخ اصدار هوية الاحوال'))}</div>
+    <div class="fgrp"><label>رقم شهادة الجنسية</label>${fIn('رقم شهادة الجنسية',fv(rec,'رقم شهادة الجنسية'))}</div>
+    <div class="fgrp"><label>رقم المحفظة (جنسية)</label>${fIn('رقم المحفظة لشهادة الجنسية',fv(rec,'رقم المحفظة لشهادة الجنسية'))}</div>
+    <div class="fgrp"><label>رقم السجل (جنسية)</label>${fIn('رقم السجل  لشهادة الجنسية',fv(rec,'رقم السجل  لشهادة الجنسية'))}</div>
+    <div class="fgrp"><label>رقم الصحيفة (جنسية)</label>${fIn('رقم الصحيفة  لشهادة الجنسية',fv(rec,'رقم الصحيفة  لشهادة الجنسية'))}</div>
+    <div class="fgrp"><label>تاريخ إصدار شهادة الجنسية</label>${fIn('تاريخ اصدار شهادة الجنسية',fv(rec,'تاريخ اصدار شهادة الجنسية'))}</div>
+    <div class="fgrp"><label>رقم البطاقة التموينية</label>${fIn('رقم البطاقة التموينية',fv(rec,'رقم البطاقة التموينية'))}</div>
+    <div class="fgrp"><label>مكان صدور البطاقة التموينية</label>${fIn('مكان صدور البطاقة التموينية',fv(rec,'مكان صدور البطاقة التموينية'))}</div>
+    <div class="fgrp"><label>اسم المركز التمويني</label>${fIn('اسم المركز التمويني',fv(rec,'اسم المركز التمويني'))}</div>
+    <div class="fgrp"><label>رقم الهاتف</label>${fIn('رقم الهاتف',fv(rec,'رقم الهاتف'))}</div>
+  </div></div>
+
+  <div class="fsec"><h3>📅 التعيين والمباشرة</h3>
+  <div class="fgrid">
+    <div class="fgrp"><label>تاريخ التعيين</label>${fIn('تاريخ التعيين',fv(rec,'تاريخ التعيين'))}</div>
+    <div class="fgrp"><label>رقم كتاب التعيين</label>${fIn('رقم كتاب التعيين',fv(rec,'رقم كتاب التعيين'))}</div>
+    <div class="fgrp"><label>تاريخ المباشرة الأولى</label>${fIn('تاريخ المباشرة لأول مره بالوظيفه',fv(rec,'تاريخ المباشرة لأول مره بالوظيفه'))}</div>
+    <div class="fgrp"><label>تاريخ كتاب المباشرة</label>${fIn('تاريخ كتاب المباشرة',fv(rec,'تاريخ كتاب المباشرة'))}</div>
+    <div class="fgrp"><label>رقم كتاب المباشرة</label>${fIn('رقم كتاب المباشرة',fv(rec,'رقم كتاب المباشرة'))}</div>
+  </div></div>
+
+  <div class="fsec"><h3>🎓 التعليم</h3>
+  <div class="fgrid">
+    <div class="fgrp"><label>سنة التخرج</label>${fIn('سنة التخرج',fv(rec,'سنة التخرج'))}</div>
+    <div class="fgrp"><label>الجهة المانحة للشهادة</label>${fIn('الجهة المانحة للشهادة',fv(rec,'الجهة المانحة للشهادة'))}</div>
+    <div class="fgrp"><label>الشهادة الأولى</label>${fIn('الشهادة الاولى',fv(rec,'الشهادة الاولى'))}</div>
+  </div></div>
+
+  <div class="fsec"><h3>📝 ملاحظات</h3>
+  <div class="fgrid">
+    <div class="fgrp"><label>تاريخ تعديل البيانات</label>${fIn('تاريخ تعديل البيانات',fv(rec,'تاريخ تعديل البيانات'))}</div>
+  </div></div>`;
+}
+
+// When prof changes: update tadreej, spec, title dropdowns
+function onProfChangeNew(val){
+  const prof=val;
+  const tadInfo=CFG.profTadreej[prof]||[];
+  const tadreegs=tadInfo.map(t=>t.name);
+  const cfgSpecs=[...new Set(tadInfo.flatMap(t=>t.specs||[]))];
+  const dbSpecs=DB.records.filter(r=>r['المهنه']===prof).map(r=>r['الاختصاص']||'').filter(Boolean);
+  const allSpecs=[...new Set([...cfgSpecs,...dbSpecs])].sort((a,b)=>a.localeCompare(b,'ar'));
+  const allTitles=[...new Set(tadInfo.flatMap(t=>Object.values(t.titles||{}).flat()))];
+  // Re-render wrap-tadreej, wrap-spec, wrap-title
+  const wt=document.getElementById('wrap-tadreej');
+  const ws=document.getElementById('wrap-spec');
+  const wtt=document.getElementById('wrap-title');
+  if(wt) wt.innerHTML=sselSingle('التدرج',tadreegs,'','onTadreejChangeNew');
+  if(ws) ws.innerHTML=sselSingle('الاختصاص',allSpecs,'');
+  if(wtt) wtt.innerHTML=sselSingle('العنوان الوظيفي',allTitles,'');
+}
+
+// When tadreej changes: filter specs and update title options
+function onTadreejChangeNew(val){
+  const profHid=document.querySelector('input.ssel-hidden[data-field="المهنه"]');
+  const prof=profHid?profHid.value:'';
+  const tadInfo=CFG.profTadreej[prof]||[];
+  const tad=tadInfo.find(t=>t.name===val);
+  const cfgSpecs=tad?tad.specs||[]:[...new Set(tadInfo.flatMap(t=>t.specs||[]))];
+  const dbSpecs=DB.records.filter(r=>r['المهنه']===prof&&(!val||r['التدرج']===val)).map(r=>r['الاختصاص']||'').filter(Boolean);
+  const allSpecs=[...new Set([...cfgSpecs,...dbSpecs])].sort((a,b)=>a.localeCompare(b,'ar'));
+  const ws=document.getElementById('wrap-spec');
+  if(ws) ws.innerHTML=sselSingle('الاختصاص',allSpecs,'');
+  // refresh titles for current degree
+  const degEl=document.querySelector('#editBody [data-field="الدرجة"]');
+  if(degEl&&degEl.value) onDegreeChangeNew(degEl.value);
+}
+
+// When degree changes: auto-fill العنوان الوظيفي
+function onDegreeChangeNew(deg){
+  if(!deg) return;
+  const profHid=document.querySelector('input.ssel-hidden[data-field="المهنه"]');
+  const tadHid=document.querySelector('input.ssel-hidden[data-field="التدرج"]');
+  const prof=profHid?profHid.value:'';
+  const tad=tadHid?tadHid.value:'';
+  if(!prof||!tad) return;
+  const tadInfo=CFG.profTadreej[prof]||[];
+  const tadObj=tadInfo.find(t=>t.name===tad);
+  if(!tadObj||!tadObj.titles) return;
+  const titles=tadObj.titles[deg]||[];
+  const wtt=document.getElementById('wrap-title');
+  if(wtt){
+    const allTitles=[...new Set(Object.values(tadObj.titles).flat())];
+    wtt.innerHTML=sselSingle('العنوان الوظيفي',allTitles, titles[0]||'');
+  }
+}
+
+// Override saveRec to read ssel hidden inputs too
+function saveRec(){
+  const data={};
+  // Regular inputs
+  document.querySelectorAll('#editBody [data-field]').forEach(inp=>{
+    if(inp.type!=='hidden') data[inp.dataset.field]=inp.value;
+  });
+  // ssel hidden inputs (override)
+  document.querySelectorAll('#editBody input.ssel-hidden').forEach(inp=>{
+    data[inp.dataset.field]=inp.value;
+  });
+  if(!data['الاسم الرباعي']){ toast('الاسم الرباعي مطلوب',true); return; }
+  const now=new Date().toLocaleString('ar-IQ');
+  if(editId!==null){
+    const idx=DB.records.findIndex(r=>r._id===editId);
+    if(idx!==-1){
+      Object.assign(DB.records[idx],data);
+      DB.records[idx]._active=INACTIVE.includes(data['حالة الموظف'])?'0':'1';
+      DB.records[idx]._modified=now;
+      DB.records[idx]['تاريخ تعديل البيانات']=now;
+    }
+    toast('✅ تم حفظ التعديلات');
+  } else {
+    const newId=Date.now();
+    const rec={...data,_id:newId,_active:INACTIVE.includes(data['حالة الموظف'])?'0':'1',_created:now,_modified:now};
+    rec['تاريخ تعديل البيانات']=now;
+    DB.records.push(rec);
+    toast('✅ تم الإضافة');
+  }
+  closeEdit(); refreshAll();
+}
+
+// ============================================================
+// Patch importExcel & importJSON to auto-populate specs in CFG
+// ============================================================
+function mergeDbIntoSettings(){
+  // For each prof, merge DB specs into CFG.profTadreej specs
+  DB.professions.forEach(prof=>{
+    if(!CFG.profTadreej[prof]) CFG.profTadreej[prof]=[];
+    const dbSpecs=[...new Set(
+      DB.records.filter(r=>r['المهنه']===prof)
+        .map(r=>r['الاختصاص']||'').filter(Boolean)
+    )].sort((a,b)=>a.localeCompare(b,'ar'));
+    // Add any DB spec not already in any tadreej's specs
+    const existingSpecs=new Set(CFG.profTadreej[prof].flatMap(t=>t.specs||[]));
+    const newSpecs=dbSpecs.filter(s=>!existingSpecs.has(s));
+    // Also gather DB tadreegs
+    const dbTadreegs=[...new Set(
+      DB.records.filter(r=>r['المهنه']===prof)
+        .map(r=>r['التدرج']||'').filter(Boolean)
+    )];
+    dbTadreegs.forEach(t=>{
+      if(!CFG.profTadreej[prof].find(x=>x.name===t)){
+        // Add tadreej from DB
+        const tadSpecs=[...new Set(
+          DB.records.filter(r=>r['المهنه']===prof&&r['التدرج']===t)
+            .map(r=>r['الاختصاص']||'').filter(Boolean)
+        )].sort((a,b)=>a.localeCompare(b,'ar'));
+        CFG.profTadreej[prof].push({name:t,specs:tadSpecs,titles:{}});
+      } else {
+        // Merge specs into existing tadreej
+        const tadObj=CFG.profTadreej[prof].find(x=>x.name===t);
+        const tadDbSpecs=[...new Set(
+          DB.records.filter(r=>r['المهنه']===prof&&r['التدرج']===t)
+            .map(r=>r['الاختصاص']||'').filter(Boolean)
+        )];
+        tadDbSpecs.forEach(s=>{ if(!tadObj.specs.includes(s)) tadObj.specs.push(s); });
+        tadObj.specs.sort((a,b)=>a.localeCompare(b,'ar'));
+      }
+    });
+    // Also update DB statuses
+    if(!DB.statuses||!DB.statuses.length){
+      DB.statuses=[...new Set(DB.records.map(r=>r['حالة الموظف']||'').filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ar'));
+    }
+  });
+  saveCFG();
+}
+
+// ============================================================
+// Settings: allow editing (rename/delete) of existing specs
+// ============================================================
+function buildTadreejDetail(prof,tadName){
+  if(!tadName){ document.getElementById('tadreejDetail').innerHTML=''; return; }
+  const tadInfo=CFG.profTadreej[prof]||[];
+  const tad=tadInfo.find(t=>t.name===tadName);
+  if(!tad){ document.getElementById('tadreejDetail').innerHTML=''; return; }
+  if(!tad.specs) tad.specs=[];
+  if(!tad.titles) tad.titles={};
+  const degs=['1','2','3','4','5','6','7','8','9','10'];
+  
+  document.getElementById('tadreejDetail').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div>
+        <div style="font-size:12px;font-weight:800;color:var(--muted);margin-bottom:6px;text-transform:uppercase">الاختصاصات (قابلة للتعديل)</div>
+        <div class="tag-wrap" id="tad-specs">
+          ${tad.specs.map((s,si)=>`<span class="tag" style="cursor:pointer" title="انقر مرتين للتعديل" ondblclick="editTadSpec('${prof}','${tadName}',${si})">
+            ${s} <span class="tx" onclick="removeTadSpec('${prof}','${tadName}','${s.replace(/'/g,"\'")}')" title="حذف">×</span>
+          </span>`).join('')}
+        </div>
+        <div class="tag-add-row">
+          <input type="text" id="tad-spec-inp" placeholder="اضف اختصاص...">
+          <button class="btn btn-green btn-sm" onclick="addTadSpec('${prof}','${tadName}')">➕</button>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">💡 انقر مرتين على الاختصاص لتعديل اسمه</div>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:800;color:var(--muted);margin-bottom:6px;text-transform:uppercase">العناوين الوظيفية (حسب الدرجة)</div>
+        <div style="max-height:400px;overflow-y:auto">
+        ${degs.map(d=>`
+          <div style="margin-bottom:8px">
+            <div style="font-size:11px;font-weight:700;color:var(--blue2);margin-bottom:3px">درجة ${d}</div>
+            <div class="tag-wrap" style="min-height:26px" id="tad-title-${d}">
+              ${(tad.titles[d]||[]).map((t2,ti)=>`<span class="tag" style="font-size:11px;cursor:pointer" ondblclick="editTadTitle('${prof}','${tadName}','${d}',${ti})">
+                ${t2} <span class="tx" onclick="removeTadTitle('${prof}','${tadName}','${d}','${t2.replace(/'/g,"\'")}')">×</span>
+              </span>`).join('')}
+            </div>
+            <div class="tag-add-row">
+              <input type="text" id="tad-title-inp-${d}" placeholder="عنوان وظيفي...">
+              <button class="btn btn-blue btn-xs" onclick="addTadTitle('${prof}','${tadName}','${d}')">➕</button>
+            </div>
+          </div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+}
+
+function editTadSpec(prof,tad,idx){
+  const tadObj=CFG.profTadreej[prof]?.find(t=>t.name===tad); if(!tadObj) return;
+  const old=tadObj.specs[idx];
+  const neu=prompt('تعديل الاختصاص:',old);
+  if(!neu||neu===old) return;
+  tadObj.specs[idx]=neu.trim();
+  tadObj.specs.sort((a,b)=>a.localeCompare(b,'ar'));
+  saveCFG(); buildTadreejDetail(prof,tad);
+}
+
+function editTadTitle(prof,tad,deg,idx){
+  const tadObj=CFG.profTadreej[prof]?.find(t=>t.name===tad); if(!tadObj) return;
+  const old=(tadObj.titles[deg]||[])[idx];
+  const neu=prompt('تعديل العنوان الوظيفي:',old);
+  if(!neu||neu===old) return;
+  tadObj.titles[deg][idx]=neu.trim();
+  saveCFG(); buildTadreejDetail(prof,tad);
+}
+
+</script>
+<script>
+
+// ============================================================
+// GOOGLE SHEETS + LOGIN + ALL FEATURES
+// ============================================================
+const SHEETS_API='https://script.google.com/macros/s/AKfycbzq8hCeD42_RrHBUo5qGT3ERSlB4qosWhhHi32q9xuHJOUH-RrJkPxsPWoupnpoWKeoIQ/exec';
+let _sv=false,_qt=false,_us=false,_st=null;
+
+function setSBar(cls,msg){
+  const b=document.getElementById('sbar'),d=document.getElementById('sdot'),s=document.getElementById('sstat');
+  if(b)b.className=cls||'';
+  if(d)d.className='sdot'+(cls==='warn'?' o':cls==='err'?' r':'');
+  if(s)s.textContent=msg;
+}
+
+async function loadFromSheets(){
+  setSBar('','⏳ جاري التحميل من Google Sheets...');
+  try{
+    const[r1,r2]=await Promise.all([
+      fetch(SHEETS_API+'?action=getAll'),
+      fetch(SHEETS_API+'?action=getCfg')
+    ]);
+    const d1=await r1.json(),d2=await r2.json();
+    if(d1.error) throw new Error(d1.error);
+    if(d1.records&&d1.records.length){DB.records=d1.records;DB.columns=d1.columns||DB.columns;}
+    if(d2.cfg&&Object.keys(d2.cfg).length){
+      CFG=d2.cfg;
+      if(!CFG.profTadreej) CFG.profTadreej={};
+      if(!CFG.quotas)      CFG.quotas={};
+      if(!CFG.units)       CFG.units=[];
+      if(!CFG.delegates)   CFG.delegates=[];
+      if(!CFG.tableCols)   CFG.tableCols=['الاسم الرباعي','الرقم الوظيفي','حالة الموظف','الملاحظات','المهنه','التدرج','الاختصاص'];
+      if(!CFG.filterFields)CFG.filterFields=['الاسم الرباعي','اسم الام الثلاثي','المهنه','التدرج','الاختصاص','تاريخ التولد','تاريخ التعيين','حالة الموظف','الدرجة','العنوان الوظيفي'];
+    }
+    setSBar('ok','✅ '+DB.records.length+' سجل — '+new Date().toLocaleTimeString('ar-IQ'));
+    setTimeout(()=>setSBar('','جاهز'),4000);
+  }catch(e){setSBar('err','❌ '+e.message);}
+}
+
+async function saveToSheets(){
+  if(_sv){_qt=true;return;} _sv=true; setSBar('warn','⏳ جاري الحفظ...');
+  try{
+    const cols=(DB.columns||[]).filter(c=>!String(c).startsWith('_'));
+    const[r1,r2]=await Promise.all([
+      fetch(SHEETS_API,{method:'POST',body:JSON.stringify({action:'saveAll',records:DB.records,columns:cols})}),
+      fetch(SHEETS_API,{method:'POST',body:JSON.stringify({action:'saveCfg',cfg:CFG})})
+    ]);
+    const d=await r1.json(); if(d.error) throw new Error(d.error);
+    _us=false; setSBar('ok','✅ محفوظ — '+new Date().toLocaleTimeString('ar-IQ'));
+    setTimeout(()=>setSBar('','جاهز'),4000);
+  }catch(e){setSBar('err','❌ فشل الحفظ: '+e.message);}
+  finally{_sv=false; if(_qt){_qt=false; saveToSheets();}}
+}
+
+function sched(){_us=true;setSBar('warn','● تغييرات غير محفوظة');clearTimeout(_st);_st=setTimeout(saveToSheets,3000);}
+function manualSave(){clearTimeout(_st);saveToSheets();}
+async function reloadSheets(){await loadFromSheets();typeof refreshAll==='function'&&refreshAll();}
+window.addEventListener('beforeunload',e=>{if(_us){e.preventDefault();e.returnValue='';}});
+setInterval(()=>{if(_us)saveToSheets();},300000);
+
+// ── LOGIN ──
+function doLogin(){
+  const u=(document.getElementById('loginUser')?.value||'').trim();
+  const p=(document.getElementById('loginPass')?.value||'').trim();
+  if(u==='mays'&&p==='1988'){
+    document.getElementById('loginScreen').style.display='none';
+    localStorage.setItem('hmsAuth','1');
+    startApp();
+  }else{
+    const e=document.getElementById('loginErr');
+    if(e){e.style.display='block';setTimeout(()=>e.style.display='none',3000);}
+    const pi=document.getElementById('loginPass'); if(pi)pi.value='';
+  }
+}
+
+// ── COMBOBOX ──
+function buildCombo(ctx,field,opts,sfx){
+  const key=sfx||field.replace(/\s/g,'_'),id='cb-'+ctx+'-'+key;
+  const optsHtml=opts.map(o=>'<label class="cbo"><input type="checkbox" value="'+o+'" onchange="cbChange(\''+ctx+'\',\''+field+'\',\''+id+'\')"> '+o+'</label>').join('');
+  return '<div class="fg cbw" style="min-width:130px;flex:1"><label>'+field+'</label>'
+    +'<input class="cbi" id="'+id+'-i" placeholder="'+field+'..."'
+    +' oninput="cbFilter(\''+id+'\')" onfocus="cbOpen(\''+id+'\')"'
+    +' onblur="setTimeout(()=>cbClose(\''+id+'\'),200)" autocomplete="off">'
+    +'<div class="cbdd" id="'+id+'-d">'+optsHtml+'</div></div>';
+}
+function cbOpen(id){document.getElementById(id+'-d')?.classList.add('open');}
+function cbClose(id){document.getElementById(id+'-d')?.classList.remove('open');}
+function cbFilter(id){
+  const q=(document.getElementById(id+'-i')?.value||'').toLowerCase();
+  const dd=document.getElementById(id+'-d'); if(!dd)return;
+  dd.classList.add('open');
+  dd.querySelectorAll('.cbo').forEach(o=>o.style.display=o.textContent.toLowerCase().includes(q)?'':'none');
+}
+function cbChange(ctx,field,id){
+  const dd=document.getElementById(id+'-d'); if(!dd)return;
+  const chk=[...dd.querySelectorAll('input:checked')].map(i=>i.value);
+  const st=pst(ctx); if(!st.msel)st.msel={};
+  st.msel[field]=chk;
+  const inp=document.getElementById(id+'-i'); if(inp)inp.value=chk.length?chk.join('، '):'';
+  st.page=1; renderTable(ctx); updBub(ctx);
+}
+function updBub(ctx){
+  const el=document.getElementById('bub-'+ctx); if(!el)return;
+  const st=pst(ctx),all=[];
+  if(st.search)all.push({f:'بحث',v:st.search,s:true});
+  if(st.msel)Object.entries(st.msel).forEach(([f,vs])=>(vs||[]).forEach(v=>all.push({f,v})));
+  el.innerHTML=all.map(b=>'<span class="fb"><span style="opacity:.65;font-size:10px">'+b.f+':</span> '+b.v
+    +'<span class="fbx" onclick="rmBub(\''+ctx+'\',\''+b.f+'\',\''+b.v.replace(/'/g,"\\'")+'\',' +(b.s||false)+')">×</span></span>').join('');
+}
+function rmBub(ctx,field,val,isSrch){
+  if(isSrch){pst(ctx).search='';const s=document.getElementById('srch-'+ctx);if(s)s.value='';}
+  else{
+    const st=pst(ctx);
+    if(st.msel&&st.msel[field])st.msel[field]=st.msel[field].filter(v=>v!==val);
+    const k=field.replace(/\s/g,'_');
+    const dd=document.getElementById('cb-'+ctx+'-'+k+'-d')||document.getElementById('cb-'+ctx+'-spec-d');
+    if(dd)dd.querySelectorAll('input:checked').forEach(c=>{if(c.value===val)c.checked=false;});
+    const inp=document.getElementById('cb-'+ctx+'-'+k+'-i');
+    if(inp&&st.msel)inp.value=(st.msel[field]||[]).join('، ')||'';
+  }
+  pst(ctx).page=1; renderTable(ctx); updBub(ctx);
+}
+
+// Override buildFilters
+const _oBF=buildFilters;
+buildFilters=function(ctx,prof,isInactive){
+  const el=document.getElementById('fp-'+ctx); if(!el)return;
+  const src=getSource(ctx);
+  const MULTI=['المهنه','التدرج','الاختصاص','حالة الموظف'];
+  const fields=CFG.filterFields.filter(f=>f!=='الاسم الرباعي');
+  function specOpts(p){
+    if(!p)return getUniq(src,'الاختصاص');
+    return [...new Set([...(CFG.profTadreej[p]||[]).flatMap(t=>t.specs||[]),...getUniq(src,'الاختصاص')])].sort((a,b)=>a.localeCompare(b,'ar'));
+  }
+  const fhtml=fields.map(f=>{
+    if(MULTI.includes(f)){
+      const opts=f==='الاختصاص'&&prof?specOpts(prof):getUniq(src,f);
+      return buildCombo(ctx,f,opts,f==='الاختصاص'?'spec':undefined);
+    }
+    return '<div class="fg" style="min-width:130px;flex:1"><label>'+f+'</label><input type="text" placeholder="'+f+'..." oninput="setF(\''+ctx+'\',\''+f+'\',this.value)"></div>';
+  }).join('');
+  el.innerHTML='<div class="fp-top"><div class="fg" style="flex:2;min-width:180px"><label>🔍 بحث بالاسم</label>'
+    +'<input type="text" placeholder="ابحث..." id="srch-'+ctx+'" oninput="setSearch(\''+ctx+'\',this.value)"></div>'
+    +'<div class="fp-count">النتائج: <b id="fc-'+ctx+'">0</b></div>'
+    +'<button class="btn btn-ghost btn-sm" onclick="resetF(\''+ctx+'\')">🔄 إعادة تعيين</button></div>'
+    +'<div class="fp-row">'+fhtml+'</div>'
+    +'<div class="fbubbles" id="bub-'+ctx+'"></div>';
+  // When مهنه changes → update اختصاص options
+  if(!prof){
+    setTimeout(()=>{
+      const mdd=document.getElementById('cb-'+ctx+'-المهنه-d');
+      if(!mdd)return;
+      mdd.querySelectorAll('input').forEach(cb=>cb.addEventListener('change',()=>{
+        const sel=[...mdd.querySelectorAll('input:checked')].map(i=>i.value);
+        const sOpts=sel.length===1?specOpts(sel[0]):getUniq(src,'الاختصاص');
+        const sdd=document.getElementById('cb-'+ctx+'-spec-d');
+        if(sdd){
+          const prev=[...sdd.querySelectorAll('input:checked')].map(i=>i.value);
+          sdd.innerHTML=sOpts.map(o=>'<label class="cbo"><input type="checkbox" value="'+o+'" '+(prev.includes(o)?'checked':'')+' onchange="cbChange(\''+ctx+'\',\'الاختصاص\',\'cb-'+ctx+'-spec\')"> '+o+'</label>').join('');
+        }
+      }));
+    },100);
+  }
+};
+const _oSrch=setSearch;
+setSearch=function(ctx,val){pst(ctx).search=val;pst(ctx).page=1;renderTable(ctx);updBub(ctx);};
+
+// ── BULK EDIT ──
+let bulkCtx=null;
+function openBulkEdit(ctx){
+  const ids=getSelected(ctx);
+  if(!ids.length){toast('لم تحدد أي سجل',true);return;}
+  bulkCtx=ctx;
+  const au=[...new Set([...CFG.units,...DB.records.map(r=>r['يعمل في']||'').filter(Boolean)])].sort((a,b)=>a.localeCompare(b,'ar'));
+  document.getElementById('bulk-prof').innerHTML='<option value="">-- لا تغيير --</option>'+DB.professions.map(p=>'<option>'+p+'</option>').join('');
+  document.getElementById('bulk-unit').innerHTML='<option value="">-- لا تغيير --</option>'+au.map(u=>'<option>'+u+'</option>').join('');
+  document.getElementById('bulk-deg').value='';
+  document.getElementById('bulkPreview').textContent='سيتم تعديل '+ids.length+' سجل';
+  bRef(''); document.getElementById('bulkOv').classList.add('open');
+}
+function bRef(prof){
+  const ti=prof?(CFG.profTadreej[prof]||[]):[...Object.values(CFG.profTadreej).flat()];
+  const at=prof?ti.map(t=>t.name):[...new Set(Object.values(CFG.profTadreej).flatMap(ts=>ts.map(t=>t.name)))];
+  const cs=prof?[...new Set(ti.flatMap(t=>t.specs||[]))]:[...new Set(Object.values(CFG.profTadreej).flatMap(ts=>ts.flatMap(t=>t.specs||[])))];
+  const ds=DB.records.filter(r=>!prof||r['المهنه']===prof).map(r=>r['الاختصاص']||'').filter(Boolean);
+  const as=[...new Set([...cs,...ds])].sort((a,b)=>a.localeCompare(b,'ar'));
+  const al=prof?[...new Set(ti.flatMap(t=>Object.values(t.titles||{}).flat()))]:[...new Set(Object.values(CFG.profTadreej).flatMap(ts=>ts.flatMap(t=>Object.values(t.titles||{}).flat())))];
+  document.getElementById('bulk-tadreej').innerHTML='<option value="">-- لا تغيير --</option>'+at.map(t=>'<option>'+t+'</option>').join('');
+  document.getElementById('bulk-spec').innerHTML='<option value="">-- لا تغيير --</option>'+as.map(s=>'<option>'+s+'</option>').join('');
+  document.getElementById('bulk-title').innerHTML='<option value="">-- لا تغيير --</option>'+al.map(t=>'<option>'+t+'</option>').join('');
+}
+function bulkDegChange(){
+  const deg=document.getElementById('bulk-deg').value.trim();
+  const tad=document.getElementById('bulk-tadreej').value;
+  const prof=document.getElementById('bulk-prof').value;
+  if(!deg||!tad)return;
+  for(const p of(prof?[prof]:DB.professions)){
+    const o=(CFG.profTadreej[p]||[]).find(t=>t.name===tad);
+    if(o?.titles?.[deg]?.length){document.getElementById('bulk-title').value=o.titles[deg][0];return;}
+  }
+}
+function applyBulk(){
+  const ids=getSelected(bulkCtx);
+  if(!ids.length){toast('لا توجد عناصر',true);return;}
+  const fs={'المهنه':document.getElementById('bulk-prof').value,'التدرج':document.getElementById('bulk-tadreej').value,'الاختصاص':document.getElementById('bulk-spec').value,'العنوان الوظيفي':document.getElementById('bulk-title').value,'الدرجة':document.getElementById('bulk-deg').value,'يعمل في':document.getElementById('bulk-unit').value};
+  const now=new Date().toLocaleString('ar-IQ'); let n=0;
+  DB.records.forEach(r=>{
+    if(!ids.includes(r._id))return;
+    Object.entries(fs).forEach(([k,v])=>{if(v!=='')r[k]=v;});
+    r._modified=now; r['تاريخ تعديل البيانات']=now; n++;
+  });
+  document.getElementById('bulkOv').classList.remove('open');
+  refreshAll(); toast('✅ تم تعديل '+n+' سجل'); sched();
+}
+function addBulkBtn(ctx){
+  const h=document.querySelector('#pg-'+ctx+' .card-hdr-left');
+  if(h&&!h.querySelector('.beb')){
+    const b=document.createElement('button');
+    b.className='btn btn-navy btn-sm beb'; b.textContent='✏️ تعديل جماعي';
+    b.onclick=()=>openBulkEdit(ctx); h.insertBefore(b,h.firstChild);
+  }
+}
+const _oBPx=buildPage;
+buildPage=function(ctx,prof,isInactive){_oBPx(ctx,prof,isInactive);setTimeout(()=>addBulkBtn(ctx),50);};
+
+// ── Patch data functions ──
+const _oSR=saveRec; saveRec=function(){_oSR.apply(this,arguments);sched();};
+const _oDel=deleteSelected; deleteSelected=function(ctx){_oDel(ctx);sched();};
+const _oSCFG=saveCFG; saveCFG=function(){try{localStorage.setItem('hmsCFG',JSON.stringify(CFG));}catch(e){}sched();};
+const _oSQ=setQuota; setQuota=function(k,v){CFG.quotas[k]=parseInt(v)||0;saveCFG();buildStats();};
+
+// ── DELEGATES ──
+function buildDelegatesPage(){
+  const del=CFG.delegates||[];
+  const el=document.getElementById('cntDelegates'); if(el)el.textContent=del.length;
+  const tb=document.getElementById('delegatesTbl'); if(!tb)return;
+  tb.innerHTML=del.length?del.map((d,i)=>'<tr><td>'+(d.name||'')+'</td><td>'+(d.title||'')+'</td><td>'+(d.from||'')+'</td><td>'+(d.notes||'')+'</td><td><button class="btn btn-blue btn-xs" onclick="edDel('+i+')">✏️</button><button class="btn btn-red btn-xs" onclick="rmDel('+i+')">🗑</button></td></tr>').join(''):'<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--muted)">لا يوجد منسبون</td></tr>';
+}
+let _di=null;
+function openAddDelegate(){_di=null;['del-name','del-title','del-from','del-notes'].forEach(id=>document.getElementById(id).value='');document.getElementById('delegateTitle').textContent='إضافة منسب';document.getElementById('delegateOv').classList.add('open');}
+function edDel(i){_di=i;const d=(CFG.delegates||[])[i];document.getElementById('del-name').value=d.name||'';document.getElementById('del-title').value=d.title||'';document.getElementById('del-from').value=d.from||'';document.getElementById('del-notes').value=d.notes||'';document.getElementById('delegateTitle').textContent='تعديل';document.getElementById('delegateOv').classList.add('open');}
+function saveDelegate(){const d={name:document.getElementById('del-name').value.trim(),title:document.getElementById('del-title').value.trim(),from:document.getElementById('del-from').value.trim(),notes:document.getElementById('del-notes').value.trim()};if(!d.name){toast('الاسم مطلوب',true);return;}if(!CFG.delegates)CFG.delegates=[];if(_di!==null)CFG.delegates[_di]=d;else CFG.delegates.push(d);saveCFG();document.getElementById('delegateOv').classList.remove('open');buildDelegatesPage();toast('✅ تم');}
+function rmDel(i){if(!confirm('حذف؟'))return;CFG.delegates.splice(i,1);saveCFG();buildDelegatesPage();}
+
+// ── UNITS ──
+function buildUnitsPage(){
+  const el=document.getElementById('unitsList'); if(!el)return;
+  el.innerHTML=(CFG.units||[]).map((u,i)=>{
+    const em=DB.records.filter(r=>r._active==='1'&&r['يعمل في']===u);
+    const rows=em.length?em.map(r=>'<tr><td style="padding:6px 10px;border-bottom:1px solid var(--border)">'+r['الاسم الرباعي']+'</td><td style="padding:6px 10px;border-bottom:1px solid var(--border)">'+r['المهنه']+'</td><td style="padding:6px 10px;border-bottom:1px solid var(--border)">'+statusBdg(r['حالة الموظف']||'')+'</td><td style="padding:6px 10px;border-bottom:1px solid var(--border)">'+r['العنوان الوظيفي']+'</td></tr>').join(''):'<tr><td colspan="4" style="padding:12px;text-align:center;color:var(--muted)">لا يوجد موظفون</td></tr>';
+    return '<div style="margin-bottom:12px"><div class="drag-item" style="cursor:default;justify-content:space-between"><span style="font-weight:700">🏨 '+u+'</span><div style="display:flex;gap:6px;align-items:center"><span class="bdg bdg-blue">'+em.length+' موظف</span><button class="btn btn-ghost btn-xs" onclick="togUL(\'ul-'+i+'\')">تفاصيل ▾</button><button class="btn btn-red btn-xs" onclick="rmUnit('+i+')">✕</button></div></div><div id="ul-'+i+'" style="display:none;margin-top:6px;border:1px solid var(--border);border-radius:8px;overflow:hidden"><table style="width:100%;font-size:12px;border-collapse:collapse"><thead><tr><th style="background:var(--navy);color:#fff;padding:6px 10px;text-align:right">الاسم</th><th style="background:var(--navy);color:#fff;padding:6px 10px;text-align:right">المهنة</th><th style="background:var(--navy);color:#fff;padding:6px 10px;text-align:right">الحالة</th><th style="background:var(--navy);color:#fff;padding:6px 10px;text-align:right">العنوان</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
+  }).join('')||'<p style="text-align:center;padding:30px;color:var(--muted)">لا توجد وحدات</p>';
+}
+function togUL(id){const e=document.getElementById(id);if(e)e.style.display=e.style.display==='none'?'block':'none';}
+function addUnit(){const v=prompt('اسم الوحدة:');if(!v)return;if(!CFG.units)CFG.units=[];CFG.units.push(v.trim());saveCFG();buildUnitsPage();toast('✅ تمت الإضافة');}
+function rmUnit(i){CFG.units.splice(i,1);saveCFG();buildUnitsPage();}
+buildUnits=buildUnitsPage;
+
+// ── STATS ──
+function buildStats(){
+  const pf=document.getElementById('statsProfSel')?.value||'',tf=document.getElementById('statsTadreejSel')?.value||'';
+  const profs=pf?[pf]:DB.professions,act=DB.records.filter(r=>r._active==='1');
+  let html='';
+  profs.forEach(prof=>{
+    const clr=PROF_CLR[prof]||'#2563ab',ti=CFG.profTadreej[prof]||[],pr=act.filter(r=>r['المهنه']===prof);
+    const tw=pr.filter(r=>(r['حالة الموظف']||'').includes('مستمر')).length;
+    const tl=pr.filter(r=>{const s=r['حالة الموظف']||'';return s.includes('اجازة')||s.includes('اجازه');}).length;
+    const td=pr.filter(r=>(r['حالة الموظف']||'').includes('منسب')).length;
+    html+='<div class="stats-box"><div class="sbox-hdr" style="background:'+clr+'15;border-bottom:2px solid '+clr+'"><span style="color:'+clr+';font-weight:900;font-size:15px">'+(PROF_ICO[prof]||'👤')+' '+prof+'</span><span style="font-size:12px;color:var(--muted)">الكلي: '+pr.length+' | مستمر: '+tw+' | إجازة: '+tl+' | منسب: '+td+'</span></div>';
+    const grps=ti.length?ti.filter(t=>!tf||t.name===tf):[{name:null}];
+    grps.forEach(tad=>{
+      const tr=tad.name?pr.filter(r=>r['التدرج']===tad.name):pr,sm={};
+      tr.forEach(r=>{const sp=r['الاختصاص']||'غير محدد';if(!sm[sp])sm[sp]={t:0,w:0,l:0,d:0};sm[sp].t++;const s=r['حالة الموظف']||'';if(s.includes('مستمر'))sm[sp].w++;else if(s.includes('اجازة')||s.includes('اجازه'))sm[sp].l++;else if(s.includes('منسب'))sm[sp].d++;});
+      if(tad.name)html+='<div style="padding:8px 14px;font-weight:800;font-size:13px;background:'+clr+'10;color:'+clr+'">↳ '+tad.name+' ('+tr.length+' موظف)</div>';
+      html+='<div class="srow" style="grid-template-columns:2.5fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr"><div class="scell h" style="text-align:right">الاختصاص</div><div class="scell h">الكلي</div><div class="scell h">مستمر</div><div class="scell h">إجازة</div><div class="scell h">منسب</div><div class="scell h">القياسي</div><div class="scell h">فائض</div><div class="scell h">احتياج</div></div>';
+      Object.entries(sm).sort((a,b)=>b[1].t-a[1].t).forEach(([sp,d])=>{
+        const qk=tad.name?(prof+'_'+tad.name+'_'+sp):('spec_'+sp),q=CFG.quotas[qk]||0,sur=q?Math.max(0,d.w-q):0,need=q?Math.max(0,q-d.w):0;
+        html+='<div class="srow" style="grid-template-columns:2.5fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr"><div class="scell" style="text-align:right;font-weight:600">'+sp+'</div><div class="scell bl">'+d.t+'</div><div class="scell gr">'+d.w+'</div><div class="scell am">'+d.l+'</div><div class="scell am">'+d.d+'</div><div class="scell"><input type="number" value="'+q+'" min="0" style="width:54px;padding:3px 5px;border:1px solid var(--border);border-radius:5px;font-size:11px;text-align:center" onchange="setQuota(\''+qk+'\',this.value)"></div><div class="scell '+(sur>0?'gr':'')+'">'+( sur||'—')+'</div><div class="scell '+(need>0?'rd':'')+'">'+( need||'—')+'</div></div>';
+      });
+    }); html+='</div>';
+  });
+  document.getElementById('statsContent').innerHTML=html||'<p style="color:var(--muted);padding:20px">لا توجد بيانات</p>';
+}
+function onStatsProfChange(){const p=document.getElementById('statsProfSel').value,ts=document.getElementById('statsTadreejSel');ts.innerHTML='<option value="">كل التدرجات</option>';const list=p?(CFG.profTadreej[p]||[]).map(t=>t.name):[...new Set(Object.values(CFG.profTadreej).flatMap(ts2=>ts2.map(t=>t.name)))];list.forEach(t=>{const o=document.createElement('option');o.value=t;o.textContent=t;ts.appendChild(o);});buildStats();}
+function exportStats(){const pf=document.getElementById('statsProfSel')?.value||'',tf=document.getElementById('statsTadreejSel')?.value||'',profs=pf?[pf]:DB.professions,act=DB.records.filter(r=>r._active==='1'),rows=[];profs.forEach(prof=>{const ti=CFG.profTadreej[prof]||[],grps=ti.length?(ti.filter(t=>!tf||t.name===tf)):[{name:null}];grps.forEach(tad=>{const tr=tad.name?act.filter(r=>r['المهنه']===prof&&r['التدرج']===tad.name):act.filter(r=>r['المهنه']===prof),sm={};tr.forEach(r=>{const sp=r['الاختصاص']||'غير محدد';if(!sm[sp])sm[sp]={t:0,w:0,l:0,d:0};sm[sp].t++;const s=r['حالة الموظف']||'';if(s.includes('مستمر'))sm[sp].w++;else if(s.includes('اجازة')||s.includes('اجازه'))sm[sp].l++;else if(s.includes('منسب'))sm[sp].d++;});Object.entries(sm).sort((a,b)=>b[1].t-a[1].t).forEach(([sp,d])=>{const qk=tad.name?(prof+'_'+tad.name+'_'+sp):('spec_'+sp),q=CFG.quotas[qk]||0;rows.push({'المهنة':prof,'التدرج':tad.name||'—','الاختصاص':sp,'الإجمالي':d.t,'مستمر':d.w,'إجازة':d.l,'منسب':d.d,'القياسي':q||'','الفائض':q?Math.max(0,d.w-q)||'':'','الاحتياج':q?Math.max(0,q-d.w)||'':''});});});});if(!rows.length){toast('لا توجد بيانات',true);return;}const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),'الإحصائيات');XLSX.writeFile(wb,'إحصائيات_'+dateStr()+'.xlsx');toast('✅ تم التصدير');}
+function printStats(){const w=window.open('','_blank');w.document.write('<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8"><style>body{font-family:Tahoma;padding:20px}.srow{display:grid}.srow>div{border:1px solid #ccc;padding:5px 8px;font-size:11px;text-align:center}.stats-box{margin-bottom:20px}.sbox-hdr{padding:8px;font-weight:bold;border:1px solid #ccc;background:#f0f5ff}@media print{button{display:none}}</style></head><body><h2>الإحصائيات — '+new Date().toLocaleDateString('ar-IQ')+'</h2>'+document.getElementById('statsContent').innerHTML+'<button onclick="window.print()">🖨 طباعة</button></body></html>');w.document.close();}
+
+// ── WORD EXPORT ──
+async function exportWordDoc(){
+  const pf=document.getElementById('wProfSel')?.value||'',sf=document.getElementById('wStatusSel')?.value||'';
+  let recs=DB.records.filter(r=>r._active==='1');
+  if(pf)recs=recs.filter(r=>r['المهنه']===pf);
+  if(sf)recs=recs.filter(r=>(r['حالة الموظف']||'').includes(sf));
+  if(!recs.length){toast('لا توجد بيانات',true);return;}
+  const fd=v=>{if(!v||v==='nan')return'';const n=parseFloat(v);if(!isNaN(n)&&n>10000&&n<100000)return new Date(Math.round((n-25569)*86400*1000)).toLocaleDateString('ar-IQ');return String(v);};
+  let body='';
+  for(let pi=0;pi<Math.ceil(recs.length/3);pi++){
+    const pg=recs.slice(pi*3,pi*3+3); body+='<div class="page">';
+    pg.forEach((r,ci)=>{
+      const num=pi*3+ci+1;
+      const name=[r['الاسم الرباعي']||'',r['اللقب']||''].filter(Boolean).join(' — ');
+      const job=[r['الرقم الوظيفي']||'',r['العنوان الوظيفي']||'',r['الدرجة']?'درجة '+r['الدرجة']:''].filter(Boolean).join('     ');
+      const stat=[r['حالة الموظف']||'',r['الملاحظات']||''].filter(Boolean).join('   |   ');
+      const addr=[r['المحافظة']||'',r['المدينة']||'',r['محلة']||'',r['زقاق']||'',r['دار']||''].filter(Boolean).join(' / ');
+      const mub=fd(r['تاريخ المباشرة لأول مره بالوظيفه']||r['تاريخ التعيين']||'');
+      const edu=[r['الشهادة الاولى']||'',r['الجهة المانحة للشهادة']||'',fd(r['سنة التخرج']||'')].filter(Boolean).join('   ');
+      body+='<div class="ec"><div class="en">'+num+'</div><div class="row"><strong>'+name+'</strong></div><div class="row">'+job+'</div><div class="row">'+stat+'</div><div class="row" style="margin-bottom:5pt"></div><div class="row">'+addr+'</div><div class="row">تاريخ المباشرة: '+mub+'</div><div class="row">'+edu+'</div></div>';
+    });
+    body+='</div>';
+  }
+  const w=window.open('','_blank');
+  w.document.write('<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>سجل الموظفين</title><style>@page{size:A4;margin:10mm 12mm}*{box-sizing:border-box;margin:0;padding:0}body{font-family:\'Times New Roman\',serif;font-size:12pt;direction:rtl}.page{page-break-after:always;display:flex;flex-direction:column;gap:6mm;padding-top:2mm}.page:last-child{page-break-after:avoid}.ec{border:1.5pt solid #1a4a8a;border-radius:3pt;padding:5mm 7mm;position:relative;min-height:74mm}.en{position:absolute;top:4mm;left:5mm;font-size:10pt;color:#666}strong{font-size:13pt;font-weight:bold;color:#0f2744}.row{margin-bottom:3.5pt;line-height:1.55;font-size:12pt}.pb{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);padding:10px 28px;background:#1a4a8a;color:#fff;border:none;border-radius:6px;font-size:14px;cursor:pointer}@media print{.pb{display:none}}</style></head><body>'+body+'<button class="pb" onclick="window.print()">🖨 طباعة</button></body></html>');
+  w.document.close(); toast('✅ تم فتح ملف الطباعة');
+}
+
+// ── SETTINGS ──
+function buildSettings(){
+  const prof=document.getElementById('settingsProfSel')?.value;
+  if(!prof){document.getElementById('settingsContent').innerHTML='';return;}
+  if(!CFG.profTadreej[prof])CFG.profTadreej[prof]=[];
+  const ti=CFG.profTadreej[prof];
+  document.getElementById('settingsContent').innerHTML='<div style="display:grid;grid-template-columns:1fr 2fr;gap:14px"><div class="card"><div class="card-hdr">التدرج</div><div class="card-body"><div class="tag-wrap">'+ti.map((t,i)=>'<span class="tag">'+t.name+' <span class="tx" onclick="rmTad(\''+prof+'\','+i+')">×</span></span>').join('')+'</div><div class="tag-add-row"><input type="text" id="ti" placeholder="اسم التدرج..."><button class="btn btn-green btn-sm" onclick="addTad(\''+prof+'\')">➕</button></div></div></div><div class="card"><div class="card-hdr">تفاصيل التدرج</div><div class="card-body"><div class="fg" style="max-width:220px;margin-bottom:14px"><label>اختر التدرج</label><select id="tdSel" onchange="buildTadreejDetail(\''+prof+'\',this.value)"><option value="">-- اختر --</option>'+ti.map(t=>'<option>'+t.name+'</option>').join('')+'</select></div><div id="tadreejDetail"></div></div></div></div>';
+}
+function addTad(p){const i=document.getElementById('ti'),v=i.value.trim();if(!v)return;if(!CFG.profTadreej[p])CFG.profTadreej[p]=[];if(CFG.profTadreej[p].find(t=>t.name===v)){toast('موجود',true);return;}CFG.profTadreej[p].push({name:v,specs:[],titles:{}});i.value='';saveCFG();buildSettings();}
+function rmTad(p,i){CFG.profTadreej[p].splice(i,1);saveCFG();buildSettings();}
+function addTadSpec(p,t){const i=document.getElementById('tad-spec-inp'),v=i.value.trim();if(!v)return;const o=CFG.profTadreej[p].find(x=>x.name===t);if(!o)return;if(!o.specs)o.specs=[];if(!o.specs.includes(v))o.specs.push(v);o.specs.sort((a,b)=>a.localeCompare(b,'ar'));i.value='';saveCFG();buildTadreejDetail(p,t);}
+function rmTadSpec(p,t,s){const o=CFG.profTadreej[p].find(x=>x.name===t);if(!o)return;o.specs=o.specs.filter(x=>x!==s);saveCFG();buildTadreejDetail(p,t);}
+function addTadTitle(p,t,d){const i=document.getElementById('tad-title-inp-'+d),v=i.value.trim();if(!v)return;const o=CFG.profTadreej[p].find(x=>x.name===t);if(!o)return;if(!o.titles)o.titles={};if(!o.titles[d])o.titles[d]=[];if(!o.titles[d].includes(v))o.titles[d].push(v);i.value='';saveCFG();buildTadreejDetail(p,t);}
+function rmTadTitle(p,t,d,v){const o=CFG.profTadreej[p].find(x=>x.name===t);if(!o)return;o.titles[d]=(o.titles[d]||[]).filter(x=>x!==v);saveCFG();buildTadreejDetail(p,t);}
+function editTadSpec(p,t,i){const o=CFG.profTadreej[p]?.find(x=>x.name===t);if(!o)return;const n=prompt('تعديل:',o.specs[i]);if(!n)return;o.specs[i]=n.trim();o.specs.sort((a,b)=>a.localeCompare(b,'ar'));saveCFG();buildTadreejDetail(p,t);}
+function editTadTitle(p,t,d,i){const o=CFG.profTadreej[p]?.find(x=>x.name===t);if(!o)return;const n=prompt('تعديل:',o.titles[d][i]);if(!n)return;o.titles[d][i]=n.trim();saveCFG();buildTadreejDetail(p,t);}
+
+// ── COL CONFIG + MISC ──
+const DC3=['الاسم الرباعي','الرقم الوظيفي','حالة الموظف','الملاحظات','المهنه','التدرج','الاختصاص'];
+const AF3=['الاسم الرباعي','اسم الام الثلاثي','المهنه','التدرج','الاختصاص','تاريخ التولد','تاريخ التعيين','حالة الموظف','الدرجة','العنوان الوظيفي'];
+function getAllDbCols(){return DB.columns.length?DB.columns:DC3;}
+function buildColConfig(){
+  const tl=document.getElementById('colsTableList'),fl=document.getElementById('colsFilterList');if(!tl||!fl)return;
+  const ac=getAllDbCols();
+  tl.innerHTML=ac.map(c=>'<div class="drag-item"><span class="drag-handle">⠿</span><input type="checkbox" '+(CFG.tableCols.includes(c)?'checked':'')+' onchange="colCheck(this,\'table\',\''+c+'\')"><span style="font-size:13px">'+c+'</span></div>').join('');
+  fl.innerHTML=ac.map(c=>'<div class="drag-item"><span class="drag-handle">⠿</span><input type="checkbox" '+(CFG.filterFields.includes(c)?'checked':'')+' onchange="colCheck(this,\'filter\',\''+c+'\')"><span style="font-size:13px">'+c+'</span></div>').join('');
+}
+function colCheck(cb,type,col){if(type==='table'){if(cb.checked&&!CFG.tableCols.includes(col))CFG.tableCols.push(col);else CFG.tableCols=CFG.tableCols.filter(c=>c!==col);}else{if(cb.checked&&!CFG.filterFields.includes(col))CFG.filterFields.push(col);else CFG.filterFields=CFG.filterFields.filter(c=>c!==col);}}
+function saveColConfig(){saveCFG();Object.keys(PROF_PAGES).forEach(ctx=>{buildFilters(ctx,PROF_PAGES[ctx].prof,PROF_PAGES[ctx].isInactive);renderTable(ctx);});toast('✅ تم');}
+function resetColConfig(){CFG.tableCols=[...DC3];CFG.filterFields=[...AF3];saveCFG();buildColConfig();toast('✅ إعادة تعيين');}
+function buildRecent(){const tb=document.getElementById('tb-recent');if(!tb)return;const r=DB.records.filter(r=>r._modified||r._created).sort((a,b)=>(b._modified||b._created||'').localeCompare(a._modified||a._created||'')).slice(0,100);tb.innerHTML=r.map(rec=>'<tr><td>'+(rec['الاسم الرباعي']||'')+'</td><td>'+profBdg(rec['المهنه']||'')+'</td><td>'+statusBdg(rec['حالة الموظف']||'')+'</td><td>'+(rec._modified||rec._created||'')+'</td><td><button class="btn btn-blue btn-xs" onclick="viewRec('+rec._id+',\'all\')">👁</button></td></tr>').join('');}
+function buildDbSum(){const a=DB.records.filter(r=>r._active==='1'),ia=DB.records.filter(r=>r._active==='0'),pc={};a.forEach(r=>{const p=r['المهنه']||'?';pc[p]=(pc[p]||0)+1;});const el=document.getElementById('dbSum');if(!el)return;el.innerHTML='<div class="sg" style="margin-bottom:0"><div class="sc blue"><div class="sc-lbl">إجمالي</div><div class="sc-val">'+DB.records.length+'</div></div><div class="sc green"><div class="sc-lbl">فعليون</div><div class="sc-val">'+a.length+'</div></div><div class="sc red"><div class="sc-lbl">مغادرون</div><div class="sc-val">'+ia.length+'</div></div>'+DB.professions.map(p=>'<div class="sc" style="border-color:'+(PROF_CLR[p]||'#3b82f6')+'"><div class="sc-lbl">'+(PROF_ICO[p]||'👤')+' '+p+'</div><div class="sc-val">'+(pc[p]||0)+'</div></div>').join('')+'</div>';}
+function mergeDbIntoSettings(){DB.professions.forEach(prof=>{if(!CFG.profTadreej[prof])CFG.profTadreej[prof]=[];const dbt=[...new Set(DB.records.filter(r=>r['المهنه']===prof).map(r=>r['التدرج']||'').filter(Boolean))];dbt.forEach(t=>{if(!CFG.profTadreej[prof].find(x=>x.name===t)){const sp=[...new Set(DB.records.filter(r=>r['المهنه']===prof&&r['التدرج']===t).map(r=>r['الاختصاص']||'').filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ar'));CFG.profTadreej[prof].push({name:t,specs:sp,titles:{}});}});});if(!DB.statuses||!DB.statuses.length)DB.statuses=[...new Set(DB.records.map(r=>r['حالة الموظف']||'').filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ar'));}
+function refreshAll(){buildNav();buildDash();buildStats();buildDbSum();buildRecent();Object.keys(PROF_PAGES).forEach(ctx=>{buildFilters(ctx,PROF_PAGES[ctx].prof,PROF_PAGES[ctx].isInactive);renderTable(ctx);});setTimeout(()=>Object.keys(PROF_PAGES).forEach(ctx=>addBulkBtn(ctx)),100);}
+
+// ── MAIN INIT ──
+async function startApp(){
+  await loadFromSheets();
+  mergeDbIntoSettings();
+  buildNav(); buildDash();
+  typeof buildStatsPage==='function'&&buildStatsPage();
+  buildDbSum(); buildRecent();
+  typeof buildAllPage==='function'&&buildAllPage();
+  typeof buildInactivePage==='function'&&buildInactivePage();
+  (DB.professions||[]).forEach(p=>{typeof buildProfPage==='function'&&buildProfPage(p);});
+  buildUnitsPage(); buildDelegatesPage();
+  setTimeout(buildColConfig,400);
+  setTimeout(()=>Object.keys(PROF_PAGES).forEach(ctx=>addBulkBtn(ctx)),200);
+  ['statsProfSel','settingsProfSel','wProfSel'].forEach(id=>{
+    const sel=document.getElementById(id);if(!sel)return;
+    while(sel.options.length>1)sel.remove(1);
+    (DB.professions||[]).forEach(p=>{const o=document.createElement('option');o.value=p;o.textContent=p;sel.appendChild(o);});
+  });
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  if(localStorage.getItem('hmsAuth')==='1'){
+    document.getElementById('loginScreen').style.display='none';
+    startApp();
+  }
+});
+
+</script>
+</body>
+</html>
