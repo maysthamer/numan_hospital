@@ -2913,23 +2913,31 @@ function refreshAll(){buildNav();buildDash();buildStats();buildDbSum();buildRece
 // ── MAIN INIT ──
 async function startApp(){
   await loadFromSheets();
+  
+  // استخراج المهن والحالات من قاعدة البيانات حتى تظهر بالقائمة الجانبية وتتفلتر صح
+  DB.professions = [...new Set(DB.records.map(r=>r['المهنه']).filter(Boolean))].sort();
+  DB.statuses = [...new Set(DB.records.map(r=>r['حالة الموظف']).filter(Boolean))].sort();
+
   mergeDbIntoSettings();
   buildNav(); buildDash();
   typeof buildStatsPage==='function'&&buildStatsPage();
   buildDbSum(); buildRecent();
-  typeof buildAllPage==='function'&&buildAllPage();
-  typeof buildInactivePage==='function'&&buildInactivePage();
-  (DB.professions||[]).forEach(p=>{typeof buildProfPage==='function'&&buildProfPage(p);});
+  
+  // بناء الجداول والصفحات بشكل صحيح (هنا جانت المشكلة)
+  buildPage('all', null, false);
+  buildPage('inactive', null, true);
+  DB.professions.forEach(p => buildPage('prof_'+p, p, false));
+
   buildUnitsPage(); buildDelegatesPage();
   setTimeout(buildColConfig,400);
   setTimeout(()=>Object.keys(PROF_PAGES).forEach(ctx=>addBulkBtn(ctx)),200);
+  
   ['statsProfSel','settingsProfSel','wProfSel'].forEach(id=>{
     const sel=document.getElementById(id);if(!sel)return;
     while(sel.options.length>1)sel.remove(1);
     (DB.professions||[]).forEach(p=>{const o=document.createElement('option');o.value=p;o.textContent=p;sel.appendChild(o);});
   });
 }
-
 document.addEventListener('DOMContentLoaded',()=>{
   if(localStorage.getItem('hmsAuth')==='1'){
     document.getElementById('loginScreen').style.display='none';
