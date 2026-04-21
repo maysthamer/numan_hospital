@@ -528,6 +528,25 @@ th .si{font-size:10px;margin-right:3px;opacity:.7}
       </div>
     </div>
   </div>
+<div class="card" style="margin-top:14px; border-top: 3px solid var(--navy);">
+    <div class="card-hdr">📄 تصدير سجل الموظفين (Word / للطباعة)</div>
+    <div class="card-body" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+      <div class="fg" style="max-width:200px">
+        <label>المهنة</label>
+        <select id="wProfSel"><option value="">جميع المهن</option></select>
+      </div>
+      <div class="fg" style="max-width:200px">
+        <label>الحالة</label>
+        <select id="wStatusSel">
+          <option value="">جميع الحالات</option>
+          <option value="مستمر">مستمر</option>
+          <option value="اجازة">إجازة</option>
+          <option value="منسب">منسب</option>
+        </select>
+      </div>
+      <button class="btn btn-navy" onclick="exportWordDoc()">🖨️ فتح السجل</button>
+    </div>
+  </div>
   <div class="card" style="margin-top:14px">
     <div class="card-hdr">ملخص القاعدة</div>
     <div class="card-body" id="dbSum"></div>
