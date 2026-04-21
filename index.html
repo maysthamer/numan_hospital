@@ -643,11 +643,11 @@ th .si{font-size:10px;margin-right:3px;opacity:.7}
       <p style="font-size:13px;color:var(--muted);margin-bottom:16px">اختر الحقول التي تريد تغييرها. اتركها فارغة إذا لا تريد تغييرها.</p>
       <div class="fgrid g2">
         <div class="fgrp"><label>المهنة</label>
-          <select id="bulk-prof"><option value="">-- لا تغيير --</option></select>
-        </div>
-        <div class="fgrp"><label>التدرج</label>
-          <select id="bulk-tadreej"><option value="">-- لا تغيير --</option></select>
-        </div>
+  <select id="bulk-prof" onchange="bRef(this.value, '')"><option value="">-- لا تغيير --</option></select>
+</div>
+<div class="fgrp"><label>التدرج</label>
+  <select id="bulk-tadreej" onchange="bRef(document.getElementById('bulk-prof').value, this.value); bulkDegChange();"><option value="">-- لا تغيير --</option></select>
+</div>
         <div class="fgrp"><label>الاختصاص</label>
           <select id="bulk-spec"><option value="">-- لا تغيير --</option></select>
         </div>
@@ -2786,17 +2786,39 @@ function openBulkEdit(ctx){
   document.getElementById('bulkPreview').textContent='سيتم تعديل '+ids.length+' سجل';
   bRef(''); document.getElementById('bulkOv').classList.add('open');
 }
-function bRef(prof){
-  const ti=prof?(CFG.profTadreej[prof]||[]):[...Object.values(CFG.profTadreej).flat()];
-  const at=prof?ti.map(t=>t.name):[...new Set(Object.values(CFG.profTadreej).flatMap(ts=>ts.map(t=>t.name)))];
-  const cs=prof?[...new Set(ti.flatMap(t=>t.specs||[]))]:[...new Set(Object.values(CFG.profTadreej).flatMap(ts=>ts.flatMap(t=>t.specs||[])))];
-  const ds=DB.records.filter(r=>!prof||r['المهنه']===prof).map(r=>r['الاختصاص']||'').filter(Boolean);
-  const as=[...new Set([...cs,...ds])].sort((a,b)=>a.localeCompare(b,'ar'));
-  const al=prof?[...new Set(ti.flatMap(t=>Object.values(t.titles||{}).flat()))]:[...new Set(Object.values(CFG.profTadreej).flatMap(ts=>ts.flatMap(t=>Object.values(t.titles||{}).flat())))];
-  document.getElementById('bulk-tadreej').innerHTML='<option value="">-- لا تغيير --</option>'+at.map(t=>'<option>'+t+'</option>').join('');
-  document.getElementById('bulk-spec').innerHTML='<option value="">-- لا تغيير --</option>'+as.map(s=>'<option>'+s+'</option>').join('');
-  document.getElementById('bulk-title').innerHTML='<option value="">-- لا تغيير --</option>'+al.map(t=>'<option>'+t+'</option>').join('');
+function bRef(prof, tad) {
+  const ti = prof ? (CFG.profTadreej[prof] || []) : [...Object.values(CFG.profTadreej).flat()];
+  
+  // تحديث قائمة التدرج فقط عند تغيير المهنة (أي عندما يكون tad فارغاً)
+  if (!tad) {
+    const at = prof ? ti.map(t => t.name) : [...new Set(Object.values(CFG.profTadreej).flatMap(ts => ts.map(t => t.name)))];
+    document.getElementById('bulk-tadreej').innerHTML = '<option value="">-- لا تغيير --</option>' + at.map(t => '<option>' + t + '</option>').join('');
+  }
+
+  // فلترة الاختصاصات بناءً على المهنة والتدرج معاً
+  let cs = [];
+  if (prof && tad) {
+    const tadObj = ti.find(x => x.name === tad);
+    cs = tadObj ? (tadObj.specs || []) : [];
+  } else if (prof) {
+    cs = [...new Set(ti.flatMap(t => t.specs || []))];
+  } else {
+    cs = [...new Set(Object.values(CFG.profTadreej).flatMap(ts => ts.flatMap(t => t.specs || [])))];
+  }
+
+  const ds = DB.records.filter(r => (!prof || r['المهنه'] === prof) && (!tad || r['التدرج'] === tad)).map(r => r['الاختصاص'] || '').filter(Boolean);
+  const as = [...new Set([...cs, ...ds])].sort((a, b) => a.localeCompare(b, 'ar'));
+  
+  document.getElementById('bulk-spec').innerHTML = '<option value="">-- لا تغيير --</option>' + as.map(s => '<option>' + s + '</option>').join('');
+
+  // تحديث العناوين الوظيفية المتوفرة لهذا التدرج
+  const al = (prof && tad) ? 
+    (ti.find(x => x.name === tad)?.titles ? Object.values(ti.find(x => x.name === tad).titles).flat() : []) : 
+    (prof ? [...new Set(ti.flatMap(t => Object.values(t.titles || {}).flat()))] : [...new Set(Object.values(CFG.profTadreej).flatMap(ts => ts.flatMap(t => Object.values(t.titles || {}).flat())))]);
+
+  document.getElementById('bulk-title').innerHTML = '<option value="">-- لا تغيير --</option>' + [...new Set(al)].sort().map(t => '<option>' + t + '</option>').join('');
 }
+
 function bulkDegChange(){
   const deg=document.getElementById('bulk-deg').value.trim();
   const tad=document.getElementById('bulk-tadreej').value;
