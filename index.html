@@ -2728,7 +2728,7 @@ const _oSrch=setSearch;
 setSearch=function(ctx,val){pst(ctx).search=val;pst(ctx).page=1;renderTable(ctx);updBub(ctx);};
 
 // ── BULK EDIT ──
-bulkCtx=null;
+;bulkCtx=null;
 function openBulkEdit(ctx){
   const ids=getSelected(ctx);
   if(!ids.length){toast('لم تحدد أي سجل',true);return;}
