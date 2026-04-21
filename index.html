@@ -2868,9 +2868,10 @@ function applyBulk(){
 }
 function addBulkBtn(ctx){
   const h=document.querySelector('#pg-'+ctx+' .card-hdr-left');
-  if(h&&!h.querySelector('.beb')){
+  if(h&&!h.querySelector('.bulk-edit-btn')){
     const b=document.createElement('button');
-    b.className='btn btn-navy btn-sm beb'; b.textContent='✏️ تعديل جماعي';
+    b.className='btn btn-navy btn-sm bulk-edit-btn'; 
+    b.innerHTML='✏️ تعديل جماعي';
     b.onclick=()=>openBulkEdit(ctx); h.insertBefore(b,h.firstChild);
   }
 }
