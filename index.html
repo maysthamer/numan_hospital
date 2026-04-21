@@ -2631,6 +2631,30 @@ async function loadFromSheets(){
     const d1=await r1.json(),d2=await r2.json();
     if(d1.error) throw new Error(d1.error);
     if(d1.records&&d1.records.length){DB.records=d1.records;DB.columns=d1.columns||DB.columns;}
+// 1. دالة ذكية تتعرف على التواريخ المخربطة وترتبها بصيغة (يوم/شهر/سنة)
+function fixDate(v) {
+  if (!v) return '';
+  // معالجة تواريخ الإكسل وكوكل شيت اللي تجي على شكل أرقام
+  const n = parseFloat(v);
+  if (!isNaN(n) && n > 10000 && n < 100000) {
+    return new Date(Math.round((n - 25569) * 86400 * 1000)).toLocaleDateString('en-GB');
+  }
+  // معالجة التواريخ اللي تجي كنص طويل
+  if (typeof v === 'string' && (v.includes('T') || v.includes('-'))) {
+    const d = new Date(v);
+    if (!isNaN(d.getTime())) return d.toLocaleDateString('en-GB');
+  }
+  return String(v);
+}
+
+// 2. فحص كل البيانات وتطبيق الفلتر على أي حقل يحتوي اسمه على كلمة "تاريخ"
+DB.records.forEach(r => {
+  Object.keys(r).forEach(k => {
+    if (k.includes('تاريخ')) {
+      r[k] = fixDate(r[k]);
+    }
+  });
+});
     if(d2.cfg&&Object.keys(d2.cfg).length){
       CFG=d2.cfg;
       if(!CFG.profTadreej) CFG.profTadreej={};
