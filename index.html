@@ -2412,19 +2412,33 @@ function onProfChangeNew(val){
 }
 
 // When tadreej changes: filter specs and update title options
-function onTadreejChangeNew(val){
-  const profHid=document.querySelector('input.ssel-hidden[data-field="المهنه"]');
-  const prof=profHid?profHid.value:'';
-  const tadInfo=CFG.profTadreej[prof]||[];
-  const tad=tadInfo.find(t=>t.name===val);
-  const cfgSpecs=tad?tad.specs||[]:[...new Set(tadInfo.flatMap(t=>t.specs||[]))];
-  const dbSpecs=DB.records.filter(r=>r['المهنه']===prof&&(!val||r['التدرج']===val)).map(r=>r['الاختصاص']||'').filter(Boolean);
-  const allSpecs=[...new Set([...cfgSpecs,...dbSpecs])].sort((a,b)=>a.localeCompare(b,'ar'));
-  const ws=document.getElementById('wrap-spec');
-  if(ws) ws.innerHTML=sselSingle('الاختصاص',allSpecs,'');
-  // refresh titles for current degree
-  const degEl=document.querySelector('#editBody [data-field="الدرجة"]');
-  if(degEl&&degEl.value) onDegreeChangeNew(degEl.value);
+function onTadreejChangeNew(val) {
+  const profHid = document.querySelector('input.ssel-hidden[data-field="المهنه"]');
+  const prof = profHid ? profHid.value : '';
+  const tadInfo = CFG.profTadreej[prof] || [];
+  const tad = tadInfo.find(t => t.name === val);
+  
+  // 1. فلترة الاختصاصات بناءً على التدرج المختار من الإعدادات
+  let filteredSpecs = [];
+  if (tad) {
+    filteredSpecs = [...new Set(tad.specs || [])];
+  } else {
+    // إذا لم يتم اختيار تدرج، تظهر كل اختصاصات هذه المهنة
+    filteredSpecs = [...new Set(tadInfo.flatMap(t => t.specs || []))];
+  }
+  
+  // 2. دمج الاختصاصات الموجودة فعلياً في قاعدة البيانات لهذه المهنة والتدرج (لضمان عدم ضياع أي داتا قديمة)
+  const dbSpecs = DB.records.filter(r => r['المهنه'] === prof && (!val || r['التدرج'] === val)).map(r => r['الاختصاص'] || '').filter(Boolean);
+  
+  const allSpecs = [...new Set([...filteredSpecs, ...dbSpecs])].sort((a, b) => a.localeCompare(b, 'ar'));
+  
+  // 3. تحديث القائمة المنسدلة للاختصاص
+  const ws = document.getElementById('wrap-spec');
+  if (ws) ws.innerHTML = sselSingle('الاختصاص', allSpecs, '');
+  
+  // تحديث العناوين الوظيفية بناءً على الدرجة الحالية
+  const degEl = document.querySelector('#editBody [data-field="الدرجة"]');
+  if (degEl && degEl.value) onDegreeChangeNew(degEl.value);
 }
 
 // When degree changes: auto-fill العنوان الوظيفي
