@@ -2404,32 +2404,67 @@ function buildForm(rec, defaultProf){
     <div class="fgrp"><label>تاريخ تعديل البيانات</label>${fIn('تاريخ تعديل البيانات',fv(rec,'تاريخ تعديل البيانات'))}</div>
   </div></div>`;
 }
+// 1. عند تغيير المهنة: تحديث التدرج والاختصاصات المرتبطة بها فقط
+function onProfChangeNew(val) {
+  const prof = val;
+  const tadInfo = CFG.profTadreej[prof] || [];
+  const tadreegs = tadInfo.map(t => t.name);
+  
+  // استخراج الاختصاصات المرتبطة بهذه المهنة فقط من إدارة القوائم
+  const cfgSpecs = [...new Set(tadInfo.flatMap(t => t.specs || []))];
+  
+  // تحديث واجهة التدرج والاختصاص
+  const wt = document.getElementById('wrap-tadreej');
+  const ws = document.getElementById('wrap-spec');
+  const wtt = document.getElementById('wrap-title');
 
-// When prof changes: update tadreej, spec, title dropdowns
-function onProfChangeNew(val){
-  const prof=val;
-  const tadInfo=CFG.profTadreej[prof]||[];
-  const tadreegs=tadInfo.map(t=>t.name);
-  const cfgSpecs=[...new Set(tadInfo.flatMap(t=>t.specs||[]))];
-  const dbSpecs=DB.records.filter(r=>r['المهنه']===prof).map(r=>r['الاختصاص']||'').filter(Boolean);
-  const allSpecs=[...new Set([...cfgSpecs,...dbSpecs])].sort((a,b)=>a.localeCompare(b,'ar'));
-  const allTitles=[...new Set(tadInfo.flatMap(t=>Object.values(t.titles||{}).flat()))];
-  // Re-render wrap-tadreej, wrap-spec, wrap-title
-  const wt=document.getElementById('wrap-tadreej');
-  const ws=document.getElementById('wrap-spec');
-  const wtt=document.getElementById('wrap-title');
-  if(wt) wt.innerHTML=sselSingle('التدرج',tadreegs,'','onTadreejChangeNew');
-  if(ws) ws.innerHTML=sselSingle('الاختصاص',allSpecs,'');
-  if(wtt) wtt.innerHTML=sselSingle('العنوان الوظيفي',allTitles,'');
+  if (wt) wt.innerHTML = sselSingle('التدرج', tadreegs, '', 'onTadreejChangeNew');
+  if (ws) ws.innerHTML = sselSingle('الاختصاص', cfgSpecs, '');
+  if (wtt) wtt.innerHTML = sselSingle('العنوان الوظيفي', [], ''); 
 }
 
-// When tadreej changes: filter specs and update title options
+// 2. عند تغيير التدرج: فلترة الاختصاصات لتظهر فقط المرتبطة بهذا التدرج
 function onTadreejChangeNew(val) {
   const profHid = document.querySelector('input.ssel-hidden[data-field="المهنه"]');
   const prof = profHid ? profHid.value : '';
   const tadInfo = CFG.profTadreej[prof] || [];
   const tad = tadInfo.find(t => t.name === val);
   
+  // إظهار اختصاصات التدرج المختار فقط
+  const filteredSpecs = tad ? (tad.specs || []) : [];
+  
+  const ws = document.getElementById('wrap-spec');
+  if (ws) ws.innerHTML = sselSingle('الاختصاص', filteredSpecs, '');
+  
+  // تحديث العناوين إذا كانت الدرجة مدخلة مسبقاً
+  const degEl = document.querySelector('#editBody [data-field="الدرجة"]');
+  if (degEl && degEl.value) onDegreeChangeNew(degEl.value);
+}
+
+// 3. عند إدخال الدرجة: جلب العنوان الوظيفي المرتبط بها مباشرة
+function onDegreeChangeNew(deg) {
+  if (!deg) return;
+  const profHid = document.querySelector('input.ssel-hidden[data-field="المهنه"]');
+  const tadHid = document.querySelector('input.ssel-hidden[data-field="التدرج"]');
+  const prof = profHid ? profHid.value : '';
+  const tad = tadHid ? tadHid.value : '';
+  
+  if (!prof || !tad) return;
+  
+  const tadInfo = CFG.profTadreej[prof] || [];
+  const tadObj = tadInfo.find(t => t.name === tad);
+  
+  if (!tadObj || !tadObj.titles) return;
+  
+  // جلب العناوين الوظيفية المحددة لهذه الدرجة في إدارة القوائم
+  const titles = tadObj.titles[deg] || [];
+  const wtt = document.getElementById('wrap-title');
+  
+  if (wtt) {
+    // إظهار العناوين المرتبطة بالدرجة فقط، واختيار الأول تلقائياً
+    wtt.innerHTML = sselSingle('العنوان الوظيفي', titles, titles[0] || '');
+  }
+}
   // 1. فلترة الاختصاصات بناءً على التدرج المختار من الإعدادات
   let filteredSpecs = [];
   if (tad) {
