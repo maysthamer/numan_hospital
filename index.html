@@ -2205,15 +2205,9 @@ nav = function(id, el){
   if(id==='units') buildUnitsPage();
   if(id==='cols') setTimeout(buildColConfig, 100);
 };
-
-
 // ============================================================
 //  SEARCHABLE-SELECT WIDGET
 // ============================================================
-// sselSingle: single-select searchable dropdown
-// sselMulti: multi-select with tags
-// Both replace <select> elements with a nicer UI
-
 function sselSingle(field, opts, cur, onChange=''){
   const sid = 'ss_' + field.replace(/[^a-zA-Z0-9]/g,'_') + '_' + Math.random().toString(36).slice(2,6);
   const sorted = [...opts].sort((a,b)=>a.localeCompare(b,'ar'));
@@ -2229,7 +2223,7 @@ function sselSingle(field, opts, cur, onChange=''){
     <input type="hidden" class="ssel-hidden" data-field="${field}" id="val_${sid}" value="${cur||''}">
     <div class="ssel-dd" id="dd_${sid}">
       ${sorted.map(o=>`<div class="ssel-opt${cur===o?' selected':''}" 
-        onmousedown="sselPick('${sid}','${o.replace(/'/g,"\'")}'${onChange?`,${onChange}`:''})">${o}</div>`).join('')}
+        onmousedown="sselPick('${sid}','${o.replace(/'/g,"\\'")}','${onChange}')">${o}</div>`).join('')}
     </div>
   </div>`;
 }
@@ -2237,7 +2231,6 @@ function sselSingle(field, opts, cur, onChange=''){
 function sselOpen(sid){
   const dd=document.getElementById('dd_'+sid);
   if(dd) dd.classList.add('open');
-  // filter to show all
   sselFilter(sid);
 }
 
@@ -2261,7 +2254,6 @@ function sselFilter(sid){
     opt.style.display=match?'':'none';
     if(match) any=true;
   });
-  // empty state
   let em=dd.querySelector('.ssel-empty');
   if(!any){
     if(!em){ em=document.createElement('div'); em.className='ssel-empty'; em.textContent='لا توجد نتائج'; dd.appendChild(em); }
@@ -2279,7 +2271,11 @@ function sselPick(sid, val, onChangeFn){
     dd.querySelectorAll('.ssel-opt').forEach(o=>o.classList.toggle('selected', o.textContent.trim()===val));
     dd.classList.remove('open');
   }
-  if(onChangeFn) try{ eval(onChangeFn+'("'+val+'")'); }catch(e){}
+  if(onChangeFn && onChangeFn !== 'undefined') {
+     if(typeof window[onChangeFn] === 'function') {
+         window[onChangeFn](val);
+     }
+  }
 }
 
 function sselGetVal(field){
@@ -2287,28 +2283,18 @@ function sselGetVal(field){
   return hid?hid.value:'';
 }
 
-// ============================================================
-// Update fSel to use sselSingle
-// ============================================================
 function fSel(field, opts, cur, onChangeFn){
   return sselSingle(field, opts, cur, onChangeFn||'');
 }
 
-// ============================================================
-// Rebuild buildForm to use sselSingle for all selects
-// and auto-fill title when degree changes
-// ============================================================
 function buildForm(rec, defaultProf){
   const prof=rec?rec['المهنه']:(defaultProf||'');
   const tadInfo=CFG.profTadreej[prof]||[];
   const tadreegs=tadInfo.map(t=>t.name);
-  // Specs from CFG + from DB records for this prof, sorted alphabetically
+  
   const cfgSpecs=[...new Set(tadInfo.flatMap(t=>t.specs||[]))];
-  const dbSpecs=DB.records.filter(r=>r['المهنه']===prof).map(r=>r['الاختصاص']||'').filter(Boolean);
-  const allSpecs=[...new Set([...cfgSpecs,...dbSpecs])].sort((a,b)=>a.localeCompare(b,'ar'));
   const allTitles=[...new Set(tadInfo.flatMap(t=>Object.values(t.titles||{}).flat()))];
   const allStatuses=DB.statuses.length?DB.statuses:[...new Set(DB.records.map(r=>r['حالة الموظف']||'').filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ar'));
-  // units from CFG + db
   const dbUnits=[...new Set(DB.records.map(r=>r['يعمل في']||'').filter(Boolean))];
   const allUnits=[...new Set([...CFG.units,...dbUnits])].sort((a,b)=>a.localeCompare(b,'ar'));
   
@@ -2323,7 +2309,7 @@ function buildForm(rec, defaultProf){
       <div id="wrap-tadreej">${sselSingle('التدرج', tadreegs, fv(rec,'التدرج'), 'onTadreejChangeNew')}</div>
     </div>
     <div class="fgrp"><label>الاختصاص</label>
-      <div id="wrap-spec">${sselSingle('الاختصاص', allSpecs, fv(rec,'الاختصاص'))}</div>
+      <div id="wrap-spec">${sselSingle('الاختصاص', cfgSpecs, fv(rec,'الاختصاص'))}</div>
     </div>
     <div class="fgrp"><label>الدرجة</label>
       <input type="text" data-field="الدرجة" value="${fv(rec,'الدرجة')}" 
@@ -2404,13 +2390,14 @@ function buildForm(rec, defaultProf){
     <div class="fgrp"><label>تاريخ تعديل البيانات</label>${fIn('تاريخ تعديل البيانات',fv(rec,'تاريخ تعديل البيانات'))}</div>
   </div></div>`;
 }
-// 1. عند تغيير المهنة: تحديث التدرج والاختصاصات المرتبطة بها فقط
+
 function onProfChangeNew(val) {
   const prof = val;
   const tadInfo = CFG.profTadreej[prof] || [];
   const tadreegs = tadInfo.map(t => t.name);
   
   const cfgSpecs = [...new Set(tadInfo.flatMap(t => t.specs || []))];
+  const allTitles = [...new Set(tadInfo.flatMap(t => Object.values(t.titles || {}).flat()))];
   
   const wt = document.getElementById('wrap-tadreej');
   const ws = document.getElementById('wrap-spec');
@@ -2418,17 +2405,16 @@ function onProfChangeNew(val) {
 
   if (wt) wt.innerHTML = sselSingle('التدرج', tadreegs, '', 'onTadreejChangeNew');
   if (ws) ws.innerHTML = sselSingle('الاختصاص', cfgSpecs, '');
-  if (wtt) wtt.innerHTML = sselSingle('العنوان الوظيفي', [], ''); 
+  if (wtt) wtt.innerHTML = sselSingle('العنوان الوظيفي', allTitles, ''); 
 }
 
-// 2. عند تغيير التدرج: فلترة الاختصاصات لتظهر فقط المرتبطة بهذا التدرج
 function onTadreejChangeNew(val) {
   const profHid = document.querySelector('input.ssel-hidden[data-field="المهنه"]');
   const prof = profHid ? profHid.value : '';
   const tadInfo = CFG.profTadreej[prof] || [];
   const tad = tadInfo.find(t => t.name === val);
   
-  const filteredSpecs = tad ? (tad.specs || []) : [];
+  const filteredSpecs = tad ? (tad.specs || []) : [...new Set(tadInfo.flatMap(t => t.specs || []))];
   
   const ws = document.getElementById('wrap-spec');
   if (ws) ws.innerHTML = sselSingle('الاختصاص', filteredSpecs, '');
@@ -2437,7 +2423,6 @@ function onTadreejChangeNew(val) {
   if (degEl && degEl.value) onDegreeChangeNew(degEl.value);
 }
 
-// 3. عند إدخال الدرجة: جلب العنوان الوظيفي المرتبط بها مباشرة
 function onDegreeChangeNew(deg) {
   if (!deg) return;
   const profHid = document.querySelector('input.ssel-hidden[data-field="المهنه"]');
@@ -2459,6 +2444,7 @@ function onDegreeChangeNew(deg) {
     wtt.innerHTML = sselSingle('العنوان الوظيفي', titles, titles[0] || '');
   }
 }
+
 // Override saveRec to read ssel hidden inputs too
 function saveRec(){
   const data={};
