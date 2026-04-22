@@ -2747,6 +2747,8 @@ function cbOpen(id){
 }
 
 function cbClose(id){document.getElementById(id+'-d')?.classList.remove('open');}
+
+function updBub(ctx){
   const el=document.getElementById('bub-'+ctx); if(!el)return;
   const st=pst(ctx),all=[];
   if(st.search)all.push({f:'بحث',v:st.search,s:true});
