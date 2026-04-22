@@ -774,7 +774,6 @@ function buildNav(){
 }
 
 function nav(id,el){
- function nav(id,el){
   document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('on'));
   const pg=document.getElementById('pg-'+id);
@@ -784,7 +783,7 @@ function nav(id,el){
   
   // هذا السطر يسد القائمة الجانبية بالموبايل بمجرد اختيار صفحة
   document.getElementById('sb').classList.remove('sb-open');
-}
+} 
 
 // ============================================================
 //  DASHBOARD
