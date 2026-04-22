@@ -2722,7 +2722,6 @@ function buildCombo(ctx,field,opts,sfx){
   const key=sfx||field.replace(/\s/g,'_'),id='cb-'+ctx+'-'+key;
   const optsHtml=opts.map(o=>'<label class="cbo"><input type="checkbox" value="'+o+'" onchange="cbChange(\''+ctx+'\',\''+field+'\',\''+id+'\')"> '+o+'</label>').join('');
   
-  // شلنا الـ onblur اللي جان يسد القائمة بسرعة، وضفنا id للغلاف
   return '<div class="fg cbw" style="min-width:130px;flex:1" id="wrap-'+id+'"><label>'+field+'</label>'
     +'<input class="cbi" id="'+id+'-i" placeholder="'+field+'..."'
     +' oninput="cbFilter(\''+id+'\')" onfocus="cbOpen(\''+id+'\')"'
@@ -2734,7 +2733,7 @@ function cbOpen(id){
   const dd = document.getElementById(id+'-d');
   if(dd) dd.classList.add('open');
   
-  // خلينا القائمة تنسد بس من تضغطين بمكان فارغ خارج القائمة
+  // إغلاق القائمة عند الضغط خارجها فقط
   setTimeout(() => {
     document.addEventListener('click', function closer(e){
       const wrap = document.getElementById('wrap-'+id);
@@ -2746,8 +2745,39 @@ function cbOpen(id){
   }, 50);
 }
 
-function cbClose(id){document.getElementById(id+'-d')?.classList.remove('open');}
+function cbClose(id){
+  document.getElementById(id+'-d')?.classList.remove('open');
+}
 
+function cbFilter(id){
+  const rawVal = document.getElementById(id+'-i')?.value || '';
+  // نأخذ بس آخر كلمة انكتبت بعد الفارزة حتى البحث يشتغل صح حتى لو مختارين أقسام
+  const parts = rawVal.split('،');
+  const q = parts[parts.length - 1].trim().toLowerCase();
+  
+  const dd = document.getElementById(id+'-d'); 
+  if(!dd) return;
+  dd.classList.add('open');
+  dd.querySelectorAll('.cbo').forEach(o => {
+    o.style.display = o.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+
+function cbChange(ctx,field,id){
+  const dd=document.getElementById(id+'-d'); if(!dd) return;
+  const chk=[...dd.querySelectorAll('input:checked')].map(i=>i.value);
+  
+  const st=pst(ctx); 
+  if(!st.msel) st.msel={};
+  st.msel[field]=chk;
+  
+  const inp=document.getElementById(id+'-i'); 
+  if(inp) inp.value = chk.length ? chk.join('، ') + '، ' : '';
+  
+  st.page=1; 
+  renderTable(ctx); // هذا السطر هو اللي يفلتر الجدول
+  if(typeof updBub === 'function') updBub(ctx);
+}
 function updBub(ctx){
   const el=document.getElementById('bub-'+ctx); if(!el)return;
   const st=pst(ctx),all=[];
