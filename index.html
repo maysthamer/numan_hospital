@@ -16,6 +16,15 @@
 .ssel-opt:hover { background: #eff6ff; }
 .ssel-opt.selected { background: #eff6ff; font-weight: 700; color: var(--blue2); border-right: 3px solid var(--blue2); }
 .ssel-empty { padding: 10px; text-align: center; color: var(--muted); font-size: 12px; }
+/* فتح القائمة الجانبية في الموبايل */
+@media(max-width: 720px) {
+  .sb.sb-open {
+    width: 240px !important;
+    overflow-y: auto !important;
+    box-shadow: -5px 0 25px rgba(0,0,0,0.6);
+    transition: 0.3s ease;
+  }
+}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -765,12 +774,16 @@ function buildNav(){
 }
 
 function nav(id,el){
+ function nav(id,el){
   document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('on'));
   const pg=document.getElementById('pg-'+id);
   if(pg) pg.classList.add('on');
   if(el) el.classList.add('on');
   window.scrollTo(0,0);
+  
+  // هذا السطر يسد القائمة الجانبية بالموبايل بمجرد اختيار صفحة
+  document.getElementById('sb').classList.remove('sb-open');
 }
 
 // ============================================================
