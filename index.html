@@ -791,7 +791,13 @@ function nav(id,el){
 function buildDash(){
   const active=DB.records.filter(r=>r._active==='1');
   const inactive=DB.records.filter(r=>r._active==='0');
-  const working=active.filter(r=>(r['حالة الموظف']||'').includes('مستمر'));
+  
+  // التعديل هنا: دمج الحالات الثلاثة
+  const working=active.filter(r=>{
+    const s=r['حالة الموظف']||'';
+    return s.includes('مستمر') || s.includes('منقول الينا') || s.includes('تعيين جديد');
+  });
+  
   const onLeave=active.filter(r=>{const s=r['حالة الموظف']||'';return s.includes('اجازة')||s.includes('اجازه');});
   const delegated=active.filter(r=>(r['حالة الموظف']||'').includes('منسب'));
   
@@ -833,7 +839,6 @@ function buildDash(){
       </div></div>`;
   }).join('');
 }
-
 // ============================================================
 //  STATUS BADGE
 // ============================================================
@@ -2938,28 +2943,78 @@ function buildStats(){
   let html='';
   profs.forEach(prof=>{
     const clr=PROF_CLR[prof]||'#2563ab',ti=CFG.profTadreej[prof]||[],pr=act.filter(r=>r['المهنه']===prof);
-    const tw=pr.filter(r=>(r['حالة الموظف']||'').includes('مستمر')).length;
+    
+    // التعديل هنا: شمول المستمر، المنقول الينا، وتعيين جديد
+    const tw=pr.filter(r=>{
+      const s=r['حالة الموظف']||'';
+      return s.includes('مستمر') || s.includes('منقول الينا') || s.includes('تعيين جديد');
+    }).length;
+    
     const tl=pr.filter(r=>{const s=r['حالة الموظف']||'';return s.includes('اجازة')||s.includes('اجازه');}).length;
     const td=pr.filter(r=>(r['حالة الموظف']||'').includes('منسب')).length;
+    
     html+='<div class="stats-box"><div class="sbox-hdr" style="background:'+clr+'15;border-bottom:2px solid '+clr+'"><span style="color:'+clr+';font-weight:900;font-size:15px">'+(PROF_ICO[prof]||'👤')+' '+prof+'</span><span style="font-size:12px;color:var(--muted)">الكلي: '+pr.length+' | مستمر: '+tw+' | إجازة: '+tl+' | منسب: '+td+'</span></div>';
+    
     const grps=ti.length?ti.filter(t=>!tf||t.name===tf):[{name:null}];
     grps.forEach(tad=>{
       const tr=tad.name?pr.filter(r=>r['التدرج']===tad.name):pr,sm={};
-      tr.forEach(r=>{const sp=r['الاختصاص']||'غير محدد';if(!sm[sp])sm[sp]={t:0,w:0,l:0,d:0};sm[sp].t++;const s=r['حالة الموظف']||'';if(s.includes('مستمر'))sm[sp].w++;else if(s.includes('اجازة')||s.includes('اجازه'))sm[sp].l++;else if(s.includes('منسب'))sm[sp].d++;});
+      tr.forEach(r=>{
+        const sp=r['الاختصاص']||'غير محدد';
+        if(!sm[sp])sm[sp]={t:0,w:0,l:0,d:0};
+        sm[sp].t++;
+        const s=r['حالة الموظف']||'';
+        
+        // التعديل الثاني هنا
+        if(s.includes('مستمر') || s.includes('منقول الينا') || s.includes('تعيين جديد')) sm[sp].w++;
+        else if(s.includes('اجازة')||s.includes('اجازه')) sm[sp].l++;
+        else if(s.includes('منسب')) sm[sp].d++;
+      });
+      
       if(tad.name)html+='<div style="padding:8px 14px;font-weight:800;font-size:13px;background:'+clr+'10;color:'+clr+'">↳ '+tad.name+' ('+tr.length+' موظف)</div>';
       html+='<div class="srow" style="grid-template-columns:2.5fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr"><div class="scell h" style="text-align:right">الاختصاص</div><div class="scell h">الكلي</div><div class="scell h">مستمر</div><div class="scell h">إجازة</div><div class="scell h">منسب</div><div class="scell h">القياسي</div><div class="scell h">فائض</div><div class="scell h">احتياج</div></div>';
+      
       Object.entries(sm).sort((a,b)=>b[1].t-a[1].t).forEach(([sp,d])=>{
-        const qk=tad.name?(prof+'_'+tad.name+'_'+sp):('spec_'+sp),q=CFG.quotas[qk]||0,sur=q?Math.max(0,d.w-q):0,need=q?Math.max(0,q-d.w):0;
-        html+='<div class="srow" style="grid-template-columns:2.5fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr"><div class="scell" style="text-align:right;font-weight:600">'+sp+'</div><div class="scell bl">'+d.t+'</div><div class="scell gr">'+d.w+'</div><div class="scell am">'+d.l+'</div><div class="scell am">'+d.d+'</div><div class="scell"><input type="number" value="'+q+'" min="0" style="width:54px;padding:3px 5px;border:1px solid var(--border);border-radius:5px;font-size:11px;text-align:center" onchange="setQuota(\''+qk+'\',this.value)"></div><div class="scell '+(sur>0?'gr':'')+'">'+( sur||'—')+'</div><div class="scell '+(need>0?'rd':'')+'">'+( need||'—')+'</div></div>';
+        const qk=tad.name?(prof+'_'+tad.name+'_'+sp):('spec_'+sp);
+        const q=CFG.quotas[qk]||0;
+        const sur=Math.max(0,d.w-q);
+        const need=Math.max(0,q-d.w);
+        
+        html+='<div class="srow" style="grid-template-columns:2.5fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr"><div class="scell" style="text-align:right;font-weight:600">'+sp+'</div><div class="scell bl">'+d.t+'</div><div class="scell gr">'+d.w+'</div><div class="scell am">'+d.l+'</div><div class="scell am">'+d.d+'</div><div class="scell"><input type="number" value="'+q+'" min="0" style="width:54px;padding:3px 5px;border:1px solid var(--border);border-radius:5px;font-size:11px;text-align:center" onchange="setQuota(\''+qk+'\',this.value)"></div><div class="scell '+(sur>0?'gr':'')+'">'+(sur>0?sur:'—')+'</div><div class="scell '+(need>0?'rd':'')+'">'+(need>0?need:'—')+'</div></div>';
       });
     }); html+='</div>';
   });
   document.getElementById('statsContent').innerHTML=html||'<p style="color:var(--muted);padding:20px">لا توجد بيانات</p>';
 }
 function onStatsProfChange(){const p=document.getElementById('statsProfSel').value,ts=document.getElementById('statsTadreejSel');ts.innerHTML='<option value="">كل التدرجات</option>';const list=p?(CFG.profTadreej[p]||[]).map(t=>t.name):[...new Set(Object.values(CFG.profTadreej).flatMap(ts2=>ts2.map(t=>t.name)))];list.forEach(t=>{const o=document.createElement('option');o.value=t;o.textContent=t;ts.appendChild(o);});buildStats();}
-function exportStats(){const pf=document.getElementById('statsProfSel')?.value||'',tf=document.getElementById('statsTadreejSel')?.value||'',profs=pf?[pf]:DB.professions,act=DB.records.filter(r=>r._active==='1'),rows=[];profs.forEach(prof=>{const ti=CFG.profTadreej[prof]||[],grps=ti.length?(ti.filter(t=>!tf||t.name===tf)):[{name:null}];grps.forEach(tad=>{const tr=tad.name?act.filter(r=>r['المهنه']===prof&&r['التدرج']===tad.name):act.filter(r=>r['المهنه']===prof),sm={};tr.forEach(r=>{const sp=r['الاختصاص']||'غير محدد';if(!sm[sp])sm[sp]={t:0,w:0,l:0,d:0};sm[sp].t++;const s=r['حالة الموظف']||'';if(s.includes('مستمر'))sm[sp].w++;else if(s.includes('اجازة')||s.includes('اجازه'))sm[sp].l++;else if(s.includes('منسب'))sm[sp].d++;});Object.entries(sm).sort((a,b)=>b[1].t-a[1].t).forEach(([sp,d])=>{const qk=tad.name?(prof+'_'+tad.name+'_'+sp):('spec_'+sp),q=CFG.quotas[qk]||0;rows.push({'المهنة':prof,'التدرج':tad.name||'—','الاختصاص':sp,'الإجمالي':d.t,'مستمر':d.w,'إجازة':d.l,'منسب':d.d,'القياسي':q||'','الفائض':q?Math.max(0,d.w-q)||'':'','الاحتياج':q?Math.max(0,q-d.w)||'':''});});});});if(!rows.length){toast('لا توجد بيانات',true);return;}const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),'الإحصائيات');XLSX.writeFile(wb,'إحصائيات_'+dateStr()+'.xlsx');toast('✅ تم التصدير');}
-function printStats(){const w=window.open('','_blank');w.document.write('<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8"><style>body{font-family:Tahoma;padding:20px}.srow{display:grid}.srow>div{border:1px solid #ccc;padding:5px 8px;font-size:11px;text-align:center}.stats-box{margin-bottom:20px}.sbox-hdr{padding:8px;font-weight:bold;border:1px solid #ccc;background:#f0f5ff}@media print{button{display:none}}</style></head><body><h2>الإحصائيات — '+new Date().toLocaleDateString('ar-IQ')+'</h2>'+document.getElementById('statsContent').innerHTML+'<button onclick="window.print()">🖨 طباعة</button></body></html>');w.document.close();}
-
+function exportStats(){
+  const pf=document.getElementById('statsProfSel')?.value||'',tf=document.getElementById('statsTadreejSel')?.value||'',profs=pf?[pf]:DB.professions,act=DB.records.filter(r=>r._active==='1'),rows=[];
+  profs.forEach(prof=>{
+    const ti=CFG.profTadreej[prof]||[],grps=ti.length?(ti.filter(t=>!tf||t.name===tf)):[{name:null}];
+    grps.forEach(tad=>{
+      const tr=tad.name?act.filter(r=>r['المهنه']===prof&&r['التدرج']===tad.name):act.filter(r=>r['المهنه']===prof),sm={};
+      tr.forEach(r=>{
+        const sp=r['الاختصاص']||'غير محدد';
+        if(!sm[sp])sm[sp]={t:0,w:0,l:0,d:0};
+        sm[sp].t++;
+        const s=r['حالة الموظف']||'';
+        
+        // التعديل الثالث هنا للإكسل
+        if(s.includes('مستمر') || s.includes('منقول الينا') || s.includes('تعيين جديد')) sm[sp].w++;
+        else if(s.includes('اجازة')||s.includes('اجازه')) sm[sp].l++;
+        else if(s.includes('منسب')) sm[sp].d++;
+      });
+      Object.entries(sm).sort((a,b)=>b[1].t-a[1].t).forEach(([sp,d])=>{
+        const qk=tad.name?(prof+'_'+tad.name+'_'+sp):('spec_'+sp);
+        const q=CFG.quotas[qk]||0;
+        const sur=Math.max(0,d.w-q);
+        const need=Math.max(0,q-d.w);
+        rows.push({'المهنة':prof,'التدرج':tad.name||'—','الاختصاص':sp,'الإجمالي':d.t,'مستمر':d.w,'إجازة':d.l,'منسب':d.d,'القياسي':q||0,'الفائض':sur>0?sur:'','الاحتياج':need>0?need:''});
+      });
+    });
+  });
+  if(!rows.length){toast('لا توجد بيانات',true);return;}
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),'الإحصائيات');XLSX.writeFile(wb,'إحصائيات_'+dateStr()+'.xlsx');toast('✅ تم التصدير');
+}
 // ── WORD EXPORT ──
 async function exportWordDoc(){
   const pf=document.getElementById('wProfSel')?.value||'',sf=document.getElementById('wStatusSel')?.value||'';
